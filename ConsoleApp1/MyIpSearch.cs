@@ -1,13 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
+using ICSharpCode.SharpZipLib.Core;
+using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
 
 namespace ConsoleApp1
 {
     public class MyIpSearch : IDisposable
     {
+        public const string CopywriteUrl = "http://update.cz88.net/ip/copywrite.rar";
+        public const string QqwryUrl = "http://update.cz88.net/ip/qqwry.rar";
+
         private readonly object _lockInit = new object();
         private readonly object _lockRead = new object();
         private MemoryStream IpFile;
@@ -56,7 +63,66 @@ namespace ConsoleApp1
             _ipConfig = ipConfig;
         }
 
-       
+        /// <summary>
+        /// 更新数据库
+        /// </summary>
+        public void UpdateDb()
+        {
+            var client = new HttpClient();
+            var copywrite = client.GetStreamAsync(CopywriteUrl).Result;
+            var qqwry = client.GetByteArrayAsync(QqwryUrl).Result;
+            if (copywrite == null)
+            {
+                throw new Exception("-1 copywrite can't null");
+            }
+            var binaryReader = new BinaryReader(copywrite);
+            var sign = Encoding.GetEncoding("gb2312").GetString(binaryReader.ReadBytesLE(4).Where(x => x != 0x00).ToArray());
+            var version = binaryReader.ReadUInt32LE();
+            var unknown1 = binaryReader.ReadUInt32LE();
+            var size = binaryReader.ReadUInt32LE();
+            var unknown2 = binaryReader.ReadUInt32LE();
+            var key = binaryReader.ReadUInt32LE();
+            var text = Encoding.GetEncoding("gb2312").GetString(binaryReader.ReadBytesLE(128).Where(x => x != 0x00).ToArray());
+            var link = Encoding.GetEncoding("gb2312").GetString(binaryReader.ReadBytesLE(128).Where(x => x != 0x00).ToArray());
+
+            //extract information from copywrite.rar
+            if (qqwry.Length <= 24 || sign != "CZIP")
+            {
+                throw new Exception("-2 sign error");
+            }
+
+            if (qqwry.Length != size)
+            {
+                throw new Exception("-4 size error");
+            }
+            //decrypt
+            var head = new byte[0x200];
+            for (var i = 0; i < 0x200; i++)
+            {
+                key = (key * 0x805 + 1) & 0xff;
+                head[i] = (byte)(qqwry[i] ^ key);
+            }
+            Array.Copy(head, 0, qqwry, 0, head.Length);
+            var dataBuffer = new byte[4096];
+           
+            //decompress
+            using (var inflaterInputStream = new InflaterInputStream(new MemoryStream(qqwry)))
+            {
+                using (var memory = new MemoryStream())
+                {
+                    //try decompress
+                    inflaterInputStream.CopyTo(memory);
+                    //write file
+                    var ipDbPath = MapRootPath(_ipConfig.IpDbPath);
+                    using (var fsOut = File.Create(ipDbPath))
+                    {
+                        //inflaterInputStream.CopyTo(fsOut);
+                        StreamUtils.Copy(memory, fsOut, dataBuffer);
+                    }
+                }
+
+            }
+        }
 
         /// <summary>
         /// Maps a virtual path to a physical disk path.
@@ -86,11 +152,15 @@ namespace ConsoleApp1
                 Inited = false;
 
                 var ipDbPath = MapRootPath(_ipConfig.IpDbPath);
-
+                var dir = Path.GetDirectoryName(ipDbPath);
+                if (!Directory.Exists(dir))
+                {
+                    Directory.CreateDirectory(dir);
+                }
                 if (!File.Exists(ipDbPath))
                 {
                     Console.WriteLine("无法找到IP数据库{0}", ipDbPath);
-                    return false;
+                    UpdateDb();
                 }
 #if DEBUG
                 System.Diagnostics.Debug.WriteLine("使用IP数据库{0}", ipDbPath);
@@ -102,7 +172,7 @@ namespace ConsoleApp1
                         IpFile = new MemoryStream();
                         fs.CopyTo(IpFile);
                         IpFile.Position = 0;
-                        IpArray = BlockToArray(ReadIpBlock(IpFile, out var StartPosition));
+                        IpArray = BlockToArray(ReadIpBlock(IpFile, out StartPosition));
                     }
                     catch (Exception ex)
                     {
