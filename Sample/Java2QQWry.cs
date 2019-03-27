@@ -2,12 +2,13 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-namespace ConsoleApp1
+
+namespace Sample
 {
     ///<summary>
     /// QQWry 的摘要说明。
     ///</summary>
-    public class QQWry
+    public class Java2QQWry
     {
         //第一种模式
         #region 第一种模式
@@ -99,7 +100,7 @@ namespace ConsoleApp1
         ///</summary>
         ///<param name="ipfile">IP数据库文件绝对路径</param>
         #endregion
-        public QQWry(string ipfile)
+        public Java2QQWry(string ipfile)
         {
             buf = new byte[100];
             b3 = new byte[3];
@@ -307,7 +308,7 @@ namespace ConsoleApp1
                     ipFile.Position = m + 4;
                     return ReadLongX(ipFile, 3);//readLong3(m + 4);
                 }
-                    
+
             }
             ipFile.Position = m + 4;
             m = ReadLongX(ipFile, 3);//readLong3(m + 4);

@@ -1,5 +1,6 @@
 ﻿using ICSharpCode.SharpZipLib.Core;
 using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
+using QQWry;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -8,24 +9,46 @@ using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace ConsoleApp1
+namespace QQWry
 {
-    public class MyIpSearch : IDisposable
+    public class QQWryIpSearch : IDisposable, IIpSearch
     {
         public const string CopywriteUrl = "http://update.cz88.net/ip/copywrite.rar";
         public const string QqwryUrl = "http://update.cz88.net/ip/qqwry.rar";
 
-        private readonly object _lockInit = new object();
+        /// <summary>
+        /// 初始化锁定对象
+        /// </summary>
+        private static readonly object _lockInit = new object();
+        /// <summary>
+        /// 读取锁定对象
+        /// </summary>
         private readonly object _lockRead = new object();
-        private MemoryStream IpFile;
-        private long[] IpArray;
+        /// <summary>
+        /// 内存数据库
+        /// </summary>
+        private MemoryStream QQWryDBFile;
+        /// <summary>
+        /// Ip索引
+        /// </summary>
+        private long[] IpArrayIndex;
+        /// <summary>
+        /// 起始定位
+        /// </summary>
         private long StartPosition;
+        /// <summary>
+        /// 是否初始化
+        /// </summary>
         private bool? Inited;
-
+        /// <summary>
+        /// IP地址正则验证
+        /// </summary>
         private static Regex IpAddressRegex => new Regex(@"(\b(?:(?:2(?:[0-4][0-9]|5[0-5])|[0-1]?[0-9]?[0-9])\.){3}(?:(?:2([0-4][0-9]|5[0-5])|[0-1]?[0-9]?[0-9]))\b)");
 
-        private readonly IpConfig _ipConfig;
+        private readonly QQWryOptions _qqwryOptions;
         private int? ipCount;
+        private string _version;
+
         /// <summary>
         /// 记录总数
         /// </summary>
@@ -36,13 +59,13 @@ namespace ConsoleApp1
                 if (!ipCount.HasValue)
                 {
                     Init();
-                    ipCount = IpArray.Length;
+                    ipCount = IpArrayIndex.Length;
                 }
 
                 return ipCount.Value;
             }
         }
-        private string _version;
+
         /// <summary>
         /// 版本信息
         /// </summary>
@@ -58,10 +81,12 @@ namespace ConsoleApp1
             }
         }
 
-        public MyIpSearch(IpConfig ipConfig)
+        public QQWryIpSearch(QQWryOptions options)
         {
-            _ipConfig = ipConfig;
+            _qqwryOptions = options;
         }
+
+        #region public Method
 
         /// <summary>
         /// 更新数据库
@@ -109,24 +134,12 @@ namespace ConsoleApp1
             using (var inflaterInputStream = new InflaterInputStream(new MemoryStream(qqwry)))
             {
                 //write file
-                using (var fsOut = File.Create(MapRootPath(_ipConfig.IpDbPath)))
+                using (var fsOut = File.Create(_qqwryOptions.DbPath))
                 {
                     //inflaterInputStream.CopyTo(fsOut);
                     StreamUtils.Copy(inflaterInputStream, fsOut, dataBuffer);
                 }
-
             }
-        }
-
-        /// <summary>
-        /// Maps a virtual path to a physical disk path.
-        /// </summary>
-        /// <param name="path">The path to map. E.g. "~/bin"</param>
-        /// <returns>The physical path. E.g. "c:\inetpub\wwwroot\bin"</returns>
-        public virtual string MapRootPath(string path)
-        {
-            path = path.Replace("~/", "").TrimStart('/').Replace('/', '\\');
-            return Path.Combine(AppDomain.CurrentDomain.BaseDirectory ?? string.Empty, path);
         }
 
         public bool Init()
@@ -145,7 +158,7 @@ namespace ConsoleApp1
 
                 Inited = false;
 
-                var ipDbPath = MapRootPath(_ipConfig.IpDbPath);
+                var ipDbPath = _qqwryOptions.DbPath;
                 var dir = Path.GetDirectoryName(ipDbPath);
                 if (!Directory.Exists(dir))
                 {
@@ -163,23 +176,22 @@ namespace ConsoleApp1
                 {
                     try
                     {
-                        IpFile = new MemoryStream();
-                        fs.CopyTo(IpFile);
-                        IpFile.Position = 0;
-                        IpArray = BlockToArray(ReadIpBlock(IpFile, out StartPosition));
+                        QQWryDBFile = new MemoryStream();
+                        fs.CopyTo(QQWryDBFile);
+                        QQWryDBFile.Position = 0;
+                        IpArrayIndex = BlockToArray(ReadIpBlock(QQWryDBFile, out StartPosition));
                     }
                     catch (Exception ex)
                     {
                         Console.WriteLine(ex);
-
-                        return false;
+                        throw ex;
                     }
                 }
             }
 
-            if (IpFile == null)
+            if (QQWryDBFile == null)
             {
-                throw new InvalidOperationException("无法打开IP数据库" + _ipConfig.IpDbPath + "！");
+                throw new InvalidOperationException("无法打开IP数据库" + _qqwryOptions.DbPath + "！");
             }
 
             Inited = true;
@@ -246,33 +258,33 @@ namespace ConsoleApp1
             {
                 return loc;
             }
-            long offset = SearchIp(ip, IpArray, 0, IpArray.Length) * 7 + 4;
+            long offset = SearchIp(ip, IpArrayIndex, 0, IpArrayIndex.Length) * 7 + 4;
             lock (_lockRead)
             {
-                IpFile.Position = StartPosition;
+                QQWryDBFile.Position = StartPosition;
                 //跳过起始IP
-                IpFile.Position += offset;
+                QQWryDBFile.Position += offset;
                 //跳过结束IP
-                IpFile.Position = ReadLongX(IpFile, 3) + 4;
+                QQWryDBFile.Position = ReadLongX(QQWryDBFile, 3) + 4;
 
                 //读取标志
-                var flag = IpFile.ReadByte();
+                var flag = QQWryDBFile.ReadByte();
                 //表示国家和地区被转向
                 if (flag == 1)
                 {
-                    IpFile.Position = ReadLongX(IpFile, 3);
+                    QQWryDBFile.Position = ReadLongX(QQWryDBFile, 3);
                     //再读标志
-                    flag = IpFile.ReadByte();
+                    flag = QQWryDBFile.ReadByte();
                 }
-                var countryOffset = IpFile.Position;
-                loc.Country = ReadString(IpFile, flag);
+                var countryOffset = QQWryDBFile.Position;
+                loc.Country = ReadString(QQWryDBFile, flag);
 
                 if (flag == 2)
                 {
-                    IpFile.Position = countryOffset + 3;
+                    QQWryDBFile.Position = countryOffset + 3;
                 }
-                flag = IpFile.ReadByte();
-                loc.Area = ReadString(IpFile, flag);
+                flag = QQWryDBFile.ReadByte();
+                loc.Area = ReadString(QQWryDBFile, flag);
                 if (" CZ88.NET".Equals(loc.Area, StringComparison.CurrentCultureIgnoreCase))
                 {
                     loc.Area = string.Empty;
@@ -282,12 +294,24 @@ namespace ConsoleApp1
 
         }
 
+        public void Dispose()
+        {
+            QQWryDBFile?.Dispose();
+            QQWryDBFile = null;
+            IpArrayIndex = null;
+            Inited = null;
+        }
+
+        #endregion
+
+        #region static Method
+
         ///<summary>
         /// 将字符串形式的IP转换位long
         ///</summary>
         ///<param name="strIp"></param>
         ///<returns></returns>
-        private long IpToLong(string strIp)
+        private static long IpToLong(string strIp)
         {
             var ipBytes = new byte[8];
             var strArr = strIp.Split(new char[] { '.' });
@@ -401,12 +425,6 @@ namespace ConsoleApp1
             return Encoding.GetEncoding("GB2312").GetString(list.ToArray());
         }
 
-        public void Dispose()
-        {
-            IpFile?.Dispose();
-            IpFile = null;
-            IpArray = null;
-            Inited = null;
-        }
+        #endregion
     }
 }
