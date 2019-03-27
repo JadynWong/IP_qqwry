@@ -1,25 +1,22 @@
-﻿using ICSharpCode.SharpZipLib.Core;
-using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Text;
 
 namespace ConsoleApp1
 {
     internal class Program
     {
-        
+
 
         private static void Main(string[] args)
         {
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             Console.WriteLine("Hello World!");
 
-            
 
-            IpConfig config = new IpConfig()
+
+            var config = new IpConfig()
             {
                 IpDbPath = "~/IP/qqwry.dat"
             };
@@ -38,20 +35,15 @@ namespace ConsoleApp1
                 "255.255.255.255",
                 "0.0.0.0",
                 "1.1.1.1",
-                "255.255.255.0"
+                "255.255.255.0"//记录版本信息  可以自己做替换显示
             };
             foreach (var ip in ips)
             {
                 var ipLocation = ipSearch.GetIpLocation(ip);
                 Write(ipLocation);
             }
-
-            //QQWry qWry = new QQWry(MapRootPath(config.IpDbPath));
-            //foreach (var ip in ips)
-            //{
-            //    var ipLocation = qWry.SearchIPLocation(ip);
-            //    Write(ip, ipLocation);
-            //}
+            Console.WriteLine("记录总数" + ipSearch.IpCount);
+            Console.WriteLine("版本" + ipSearch.Version);
 
             Console.ReadKey();
         }
