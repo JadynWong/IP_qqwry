@@ -24,8 +24,6 @@ namespace ConsoleApp1
                 IpDbPath = "~/IP/qqwry.dat"
             };
             var ipSearch = new MyIpSearch(config);
-            ipSearch.UpdateDb();
-            ipSearch.Init();
             var ips = new[]
             {
                 "72.51.27.51",

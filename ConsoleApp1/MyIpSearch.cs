@@ -1,12 +1,12 @@
-﻿using System;
+﻿using ICSharpCode.SharpZipLib.Core;
+using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
-using ICSharpCode.SharpZipLib.Core;
-using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
 
 namespace ConsoleApp1
 {
@@ -104,21 +104,15 @@ namespace ConsoleApp1
             }
             Array.Copy(head, 0, qqwry, 0, head.Length);
             var dataBuffer = new byte[4096];
-           
+
             //decompress
             using (var inflaterInputStream = new InflaterInputStream(new MemoryStream(qqwry)))
             {
-                using (var memory = new MemoryStream())
+                //write file
+                using (var fsOut = File.Create(MapRootPath(_ipConfig.IpDbPath)))
                 {
-                    //try decompress
-                    inflaterInputStream.CopyTo(memory);
-                    //write file
-                    var ipDbPath = MapRootPath(_ipConfig.IpDbPath);
-                    using (var fsOut = File.Create(ipDbPath))
-                    {
-                        //inflaterInputStream.CopyTo(fsOut);
-                        StreamUtils.Copy(memory, fsOut, dataBuffer);
-                    }
+                    //inflaterInputStream.CopyTo(fsOut);
+                    StreamUtils.Copy(inflaterInputStream, fsOut, dataBuffer);
                 }
 
             }
@@ -237,7 +231,7 @@ namespace ConsoleApp1
             {
                 Ip = strIp
             };
-            if (!CheckIp(strIp))
+            if (!CheckIp(strIp) || !Init())
             {
                 return loc;
             }
@@ -246,15 +240,7 @@ namespace ConsoleApp1
             {
                 loc.Country = "本机内部环回地址";
                 loc.Area = string.Empty;
-            }
-            else
-            {
-                if ((((ip >= IpToLong("0.0.0.0")) && (ip <= IpToLong("2.255.255.255"))) || ((ip >= IpToLong("64.0.0.0")) && (ip <= IpToLong("126.255.255.255")))) ||
-                ((ip >= IpToLong("58.0.0.0")) && (ip <= IpToLong("60.255.255.255"))))
-                {
-                    loc.Country = "网络保留地址";
-                    loc.Area = string.Empty;
-                }
+                return loc;
             }
             if (!Init())
             {
