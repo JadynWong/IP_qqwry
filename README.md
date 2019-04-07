@@ -26,4 +26,20 @@ QQWry.DependencyInjection [![NuGet](https://img.shields.io/nuget/v/QQWry.Depende
 
 ## QQWry.DependencyInjection
 
+    var service = new ServiceCollection();
+
     service.AddQQWry(config);
+
+    var serviceProvider = service.BuildServiceProvider();
+
+    using (var scope = serviceProvider.CreateScope())
+    {
+        var ipSearchInterface = scope.ServiceProvider.GetRequiredService<IIpSearch>();
+        foreach (var ip in preSearchIpArray)
+        {
+            var ipLocation = ipSearchInterface.GetIpLocation(ip);
+            Write(ipLocation);
+        }
+        Console.WriteLine("记录总数" + ipSearchInterface.IpCount);
+        Console.WriteLine("版本" + ipSearchInterface.Version);
+    }
