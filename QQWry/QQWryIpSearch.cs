@@ -244,7 +244,7 @@ namespace QQWry
                 return loc;
             }
             long ip = IpToLong(strIp);
-            if ((ip >= IpToLong("127.0.0.1") && (ip <= IpToLong("127.255.255.255"))))
+            if (ip == IpToLong("127.0.0.1"))
             {
                 loc.Country = "本机内部环回地址";
                 loc.Area = string.Empty;
@@ -415,7 +415,7 @@ namespace QQWry
                 return loc;
             }
             long ip = IpToLong(strIp);
-            if ((ip >= IpToLong("127.0.0.1") && (ip <= IpToLong("127.255.255.255"))))
+            if (ip == IpToLong("127.0.0.1"))
             {
                 loc.Country = "本机内部环回地址";
                 loc.Area = string.Empty;
