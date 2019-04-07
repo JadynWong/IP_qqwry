@@ -1,5 +1,6 @@
 version: '1.0.{build}'
 image: Visual Studio 2017
+skip_non_tags: true
 branches:  
   only:
   - master
@@ -14,5 +15,12 @@ deploy:
   api_key:
     secure: 3BkRUkvxXQyC77E+MAlJiZLODsf/C1Rd4qMsvkEqyize/uYYc+hhvEW5OBCDezjK
   skip_symbols: true
+  on:
+    branch: master
+- provider: GitHub
+  auth_token:
+    secure: 0pq3p842bKjZiba2rSP75W0r2td6+nDmRqeGwIaDlXDjKA+xUCrPhng9mpDx6hRiZ6Tz/BUBKFq+86YyiRETLlrzkY6Sm+utx4/SO9kP5g8=
+  artifact: .\artifacts\*.nupkg
+  draft: true
   on:
     branch: master
