@@ -105,13 +105,13 @@ namespace QQWryTest
             foreach (var ip in preSearchIpArray)
             {
                 var ipLocation = ipSearch.GetIpLocation(ip);
-                Console.WriteLine($"ip£º{ipLocation.Ip}£¬country£º{ipLocation.Country}£¬area£º{ipLocation.Area}");
+                Console.WriteLine($"ipï¼š{ipLocation.Ip}ï¼Œcountryï¼š{ipLocation.Country}ï¼Œareaï¼š{ipLocation.Area}");
                 Assert.NotNull(ipLocation.Area);
             }
 
-            Console.WriteLine("¼ÇÂ¼×ÜÊý" + ipSearch.IpCount);
+            Console.WriteLine("è®°å½•æ€»æ•°" + ipSearch.IpCount);
 
-            Console.WriteLine("°æ±¾" + ipSearch.Version);
+            Console.WriteLine("ç‰ˆæœ¬" + ipSearch.Version);
 
             Assert.True(ipSearch.IpCount > 0);
 
@@ -166,13 +166,13 @@ namespace QQWryTest
             foreach (var ip in preSearchIpArray)
             {
                 var ipLocation = await ipSearch.GetIpLocationAsync(ip);
-                Console.WriteLine("ip£º{0}£¬country£º{1}£¬area£º{2}", ipLocation.Ip, ipLocation.Country, ipLocation.Area);
+                Console.WriteLine("ipï¼š{0}ï¼Œcountryï¼š{1}ï¼Œareaï¼š{2}", ipLocation.Ip, ipLocation.Country, ipLocation.Area);
                 Assert.NotNull(ipLocation.Area);
             }
 
-            Console.WriteLine("¼ÇÂ¼×ÜÊý" + ipSearch.IpCount);
+            Console.WriteLine("è®°å½•æ€»æ•°" + ipSearch.IpCount);
 
-            Console.WriteLine("°æ±¾" + ipSearch.Version);
+            Console.WriteLine("ç‰ˆæœ¬" + ipSearch.Version);
 
             Assert.True(ipSearch.IpCount > 0);
 
@@ -182,38 +182,25 @@ namespace QQWryTest
         }
 
         [Fact]
-        public void MuitlThreadingSafeTest()
+        public void MultiThreadingSafeTest()
         {
             var ipSearch = GetInstance();
 
-            var maxTask = 100000;
-            //for (int i = 0; i < maxTask; i++)
-            //{
-            //    var ip = GetRandomIp(ipSearch);
-            //    var ipLocation = i % 2 == 0 ? await ipSearch.GetIpLocationAsync(ip) : ipSearch.GetIpLocation(ip);
-            //    Console.WriteLine("ip£º{0}£¬country£º{1}£¬area£º{2}", ipLocation.Ip, ipLocation.Country, ipLocation.Area);
-            //    Assert.NotNull(ipLocation.Area);
-            //    Console.WriteLine("¼ÇÂ¼×ÜÊý" + ipSearch.IpCount);
-            //    Console.WriteLine("°æ±¾" + ipSearch.Version);
-            //    Assert.True(ipSearch.IpCount > 0);
-            //    Assert.NotNull(ipSearch.Version);
-            //}
+            var maxTask = 1000;
 
             Parallel.For(0, maxTask, new ParallelOptions()
             {
-                MaxDegreeOfParallelism = 1000
+                MaxDegreeOfParallelism = 100
             }, async (num, ParallelLoopState) =>
             {
                 var ip = GetRandomIp(ipSearch);
                 var ipLocation = await ipSearch.GetIpLocationAsync(ip);
-                Console.WriteLine("ip£º{0}£¬country£º{1}£¬area£º{2}", ipLocation.Ip, ipLocation.Country, ipLocation.Area);
+                Console.WriteLine("ipï¼š{0}ï¼Œcountryï¼š{1}ï¼Œareaï¼š{2}", ipLocation.Ip, ipLocation.Country, ipLocation.Area);
                 Assert.NotNull(ipLocation.Area);
-                Console.WriteLine("¼ÇÂ¼×ÜÊý" + ipSearch.IpCount);
-                Console.WriteLine("°æ±¾" + ipSearch.Version);
+                Console.WriteLine("è®°å½•æ€»æ•°" + ipSearch.IpCount);
+                Console.WriteLine("ç‰ˆæœ¬" + ipSearch.Version);
                 Assert.True(ipSearch.IpCount > 0);
                 Assert.NotNull(ipSearch.Version);
-
-                Debug.WriteLine(num);
             });
 
             ipSearch.Dispose();
