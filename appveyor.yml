@@ -19,7 +19,7 @@ deploy:
     branch: master
 - provider: GitHub
   auth_token:
-    secure: 0pq3p842bKjZiba2rSP75W0r2td6+nDmRqeGwIaDlXDjKA+xUCrPhng9mpDx6hRiZ6Tz/BUBKFq+86YyiRETLlrzkY6Sm+utx4/SO9kP5g8=
+    secure: sogLxB371IAfeh6vsGSybVS74vlINbMqOEbf0dSWKP42flC5vt2Pw9OREJNY4Nl3
   artifact: .\artifacts\*.nupkg
   draft: true
   on:
