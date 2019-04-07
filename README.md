@@ -1,7 +1,9 @@
 # IP_qqwry 纯真IP数据库操作
+[![Build status](https://ci.appveyor.com/api/projects/status/j89jp316jp1i8sg2?svg=true)](https://ci.appveyor.com/project/JadynWong/ip-qqwry)
 
-[![NuGet](https://img.shields.io/nuget/v/QQWry.svg?style=flat)](https://www.nuget.org/packages/QQWry)
-[![NuGet](https://img.shields.io/nuget/v/QQWry.DependencyInjection.svg?style=flat)](https://www.nuget.org/packages/QQWry.DependencyInjection)
+QQWry [![NuGet](https://img.shields.io/nuget/v/QQWry.svg?style=flat)](https://www.nuget.org/packages/QQWry)
+
+QQWry.DependencyInjection [![NuGet](https://img.shields.io/nuget/v/QQWry.DependencyInjection.svg?style=flat)](https://www.nuget.org/packages/QQWry.DependencyInjection)
 
 支持在线更新数据库
 
