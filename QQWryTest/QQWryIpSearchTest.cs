@@ -105,13 +105,9 @@ namespace QQWryTest
             foreach (var ip in preSearchIpArray)
             {
                 var ipLocation = ipSearch.GetIpLocation(ip);
-                Console.WriteLine($"ip：{ipLocation.Ip}，country：{ipLocation.Country}，area：{ipLocation.Area}");
+
                 Assert.NotNull(ipLocation.Area);
             }
-
-            Console.WriteLine("记录总数" + ipSearch.IpCount);
-
-            Console.WriteLine("版本" + ipSearch.Version);
 
             Assert.True(ipSearch.IpCount > 0);
 
@@ -166,13 +162,9 @@ namespace QQWryTest
             foreach (var ip in preSearchIpArray)
             {
                 var ipLocation = await ipSearch.GetIpLocationAsync(ip);
-                Console.WriteLine("ip：{0}，country：{1}，area：{2}", ipLocation.Ip, ipLocation.Country, ipLocation.Area);
+
                 Assert.NotNull(ipLocation.Area);
             }
-
-            Console.WriteLine("记录总数" + ipSearch.IpCount);
-
-            Console.WriteLine("版本" + ipSearch.Version);
 
             Assert.True(ipSearch.IpCount > 0);
 
@@ -188,22 +180,19 @@ namespace QQWryTest
 
             var maxTask = 1000;
 
-            Parallel.For(0, maxTask, new ParallelOptions()
+            var p = Parallel.For(0, maxTask, new ParallelOptions()
             {
                 MaxDegreeOfParallelism = 100
             }, async (num, ParallelLoopState) =>
             {
                 var ip = GetRandomIp(ipSearch);
                 var ipLocation = await ipSearch.GetIpLocationAsync(ip);
-                Console.WriteLine("ip：{0}，country：{1}，area：{2}", ipLocation.Ip, ipLocation.Country, ipLocation.Area);
                 Assert.NotNull(ipLocation.Area);
-                Console.WriteLine("记录总数" + ipSearch.IpCount);
-                Console.WriteLine("版本" + ipSearch.Version);
                 Assert.True(ipSearch.IpCount > 0);
                 Assert.NotNull(ipSearch.Version);
             });
 
-            ipSearch.Dispose();
+
         }
     }
 }
