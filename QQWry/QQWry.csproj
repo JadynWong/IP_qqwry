@@ -1,18 +1,17 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net4.5</TargetFrameworks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Copyright></Copyright>
+    <Copyright>JadynWong</Copyright>
     <PackageProjectUrl>https://github.com/JadynWong/IP_qqwry</PackageProjectUrl>
     <RepositoryUrl>https://github.com/JadynWong/IP_qqwry</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-    <PackageLicenseUrl></PackageLicenseUrl>
     <Description>QQWry IP查询</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
-
+  
   <ItemGroup>
     <PackageReference Include="SharpZipLib" Version="1.1.0" />
   </ItemGroup>
