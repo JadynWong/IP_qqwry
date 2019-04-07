@@ -463,6 +463,11 @@ namespace Sample
                 records = 1;
             return begin + records * IP_RECORD_LENGTH;
         }
+
+        static Java2QQWry()
+        {
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        }
     } //class QQWry
     public class IPLocation
     {

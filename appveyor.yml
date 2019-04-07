@@ -1,0 +1,18 @@
+version: '1.0.{build}'
+image: Visual Studio 2017
+branches:  
+  only:
+  - master
+build_script:
+- ps: .\Build.ps1
+artifacts:  
+- path: .\artifacts\**\*.nupkg
+  name: NuGet
+deploy:
+- provider: NuGet
+  name: production
+  api_key:
+    secure: 3BkRUkvxXQyC77E+MAlJiZLODsf/C1Rd4qMsvkEqyize/uYYc+hhvEW5OBCDezjK
+  skip_symbols: true
+  on:
+    branch: master
