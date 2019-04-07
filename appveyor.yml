@@ -20,7 +20,7 @@ deploy:
 - provider: GitHub
   auth_token:
     secure: sogLxB371IAfeh6vsGSybVS74vlINbMqOEbf0dSWKP42flC5vt2Pw9OREJNY4Nl3
-  artifact: /.artifacts\.nupkg/ 
+  artifact: NuGet
   draft: true
   on:
     branch: master
