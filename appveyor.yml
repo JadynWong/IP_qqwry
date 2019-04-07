@@ -6,7 +6,7 @@ branches:
 build_script:
 - ps: .\Build.ps1
 artifacts:  
-- path: .\artifacts\**\*.nupkg
+- path: .\artifacts\*.nupkg
   name: NuGet
 deploy:
 - provider: NuGet
