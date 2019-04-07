@@ -1,4 +1,6 @@
-if(Test-Path .\artifacts) { Remove-Item .\artifacts -Force -Recurse }
+$rootFolder = (Get-Item -Path "./" -Verbose).FullName
+$outputFolder = (Join-Path $rootFolder "artifacts")
+if(Test-Path $outputFolder) { Remove-Item $outputFolder -Force -Recurse }
 
 dotnet restore 
 
@@ -12,10 +14,12 @@ echo $revision
 
 dotnet build QQWrySln.sln
 
-dotnet pack .\QQWry -o .\artifacts -p:Version=1.0.$revision --version-suffix=$revision
+dotnet pack .\QQWry -o $outputFolder -p:Version=1.0.$revision --version-suffix=$revision
 
-dotnet pack .\QQWry.DependencyInjection -o .\artifacts -p:Version=1.0.$revision --version-suffix=$revision
+dotnet pack .\QQWry.DependencyInjection -o $outputFolder -p:Version=1.0.$revision --version-suffix=$revision
 
-Set-Location .\artifacts
+Set-Location $outputFolder
 
 Get-ChildItem
+
+Set-Location $rootFolder
