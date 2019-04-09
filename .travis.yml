@@ -3,7 +3,7 @@ language: csharp
 mono: none
 dotnet: 2.2.202
 solution:  ./QQWrySln.sln
-scripts:
+script:
   - dotnet restore
   - dotnet build ./QQWrySln.sln
   - dotnet test ./QQWryTest -c Release
