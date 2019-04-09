@@ -2,13 +2,13 @@ dist: xenial
 language: csharp
 mono: none
 dotnet: 2.2.202
-solution:  QQWrySln.sln
+solution:  ./QQWrySln.sln
 scripts:
   - dotnet restore
-  - dotnet build QQWrySln.sln
-  - dotnet test .\QQWryTest -c Release
-  - dotnet pack .\QQWry
-  - dotnet pack .\QQWry.DependencyInjection
+  - dotnet build ./QQWrySln.sln
+  - dotnet test ./QQWryTest -c Release
+  - dotnet pack ./QQWry
+  - dotnet pack ./QQWry.DependencyInjection
 global:
   - DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true
   - DOTNET_CLI_TELEMETRY_OPTOUT=1
