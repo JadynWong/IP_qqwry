@@ -31,30 +31,38 @@ namespace QQWry
         IpLocation GetIpLocation(string strIp);
 
         /// <summary>
-        /// 更新数据库
-        /// </summary>
-        void UpdateDb();
-
-        /// <summary>
-        /// 更新数据库
-        /// </summary>
-        /// <param name="token"></param>
-        /// <returns></returns>
-        Task UpdateDbAsync(CancellationToken token = default(CancellationToken));
-
-        /// <summary>
-        /// 获取IP信息
-        /// </summary>
-        /// <param name="token"></param>
-        /// <returns></returns>
-        Task<bool> InitAsync(CancellationToken token = default(CancellationToken));
-
-        /// <summary>
         /// 检查是否是IP地址
         /// </summary>
         /// <param name="strIp"></param>
         /// <param name="token"></param>
         /// <returns></returns>
         Task<IpLocation> GetIpLocationAsync(string strIp, CancellationToken token = default(CancellationToken));
+
+        /// <summary>
+        /// 获取CopyWrite
+        /// </summary>
+        /// <returns></returns>
+        QQWryCopyWrite GetCopyWrite();
+
+        /// <summary>
+        /// 获取CopyWrite
+        /// </summary>
+        /// <returns></returns>
+        Task<QQWryCopyWrite> GetCopyWriteAsync();
+
+        /// <summary>
+        /// 获取IP信息
+        /// </summary>
+        /// <param name="getNewDb"></param>
+        /// <returns></returns>
+        bool Init(bool getNewDb = false);
+
+        /// <summary>
+        /// 获取IP信息
+        /// </summary>
+        /// <param name="getNewDb"></param>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        Task<bool> InitAsync(bool getNewDb = false, CancellationToken token = default(CancellationToken));
     }
 }

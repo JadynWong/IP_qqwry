@@ -14,22 +14,6 @@ namespace Sample
         {
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             Console.WriteLine("QQWry Sample!");
-            var preSearchIpArray = new[]{
-                "72.51.27.51",
-                "127.0.0.1",
-                "58.246.74.34",
-                "107.182.187.67",
-                "10.204.15.2",
-                "40.73.66.99",
-                "132.232.156.237",
-                "47.104.86.68",
-                "112.65.61.101",
-                "255.255.255.255",
-                "0.0.0.0",
-                "1.1.1.1",
-                "127.255.255.255",
-                "255.255.255.0"//记录版本信息  可以自己做替换显示
-            };
 
             var config = new QQWryOptions()
             {
@@ -41,9 +25,9 @@ namespace Sample
             Console.WriteLine("QQWry");
             var ipSearch = new QQWryIpSearch(config);
 
-            foreach (var ip in preSearchIpArray)
+            for (var i = 0; i < 100; i++)
             {
-                var ipLocation = ipSearch.GetIpLocation(ip);
+                var ipLocation = ipSearch.GetIpLocation(GetRandomIp(ipSearch));
                 Write(ipLocation);
             }
             Console.WriteLine("记录总数" + ipSearch.IpCount);
@@ -63,9 +47,9 @@ namespace Sample
             using (var scope = serviceProvider.CreateScope())
             {
                 var ipSearchInterface = scope.ServiceProvider.GetRequiredService<IIpSearch>();
-                foreach (var ip in preSearchIpArray)
+                for (var i = 0; i < 100; i++)
                 {
-                    var ipLocation = ipSearchInterface.GetIpLocation(ip);
+                    var ipLocation = ipSearch.GetIpLocation(GetRandomIp(ipSearch));
                     Write(ipLocation);
                 }
                 Console.WriteLine("记录总数" + ipSearchInterface.IpCount);
@@ -79,8 +63,9 @@ namespace Sample
             Console.WriteLine("");
             Console.WriteLine("java to QQWry");
             var qqWry = new Java2QQWry(config.DbPath);
-            foreach (var ip in preSearchIpArray)
+            for (var i = 0; i < 100; i++)
             {
+                var ip = GetRandomIp(ipSearch);
                 var ipLocation = qqWry.SearchIPLocation(ip);
                 Write(ip, ipLocation);
             }
@@ -111,6 +96,30 @@ namespace Sample
             return Path.Combine(AppDomain.CurrentDomain.BaseDirectory ?? string.Empty, path);
         }
 
+        static string GetRandomIp(IIpSearch ipSearch)
+        {
+            while (true)
+            {
+                var sj = new Random(Guid.NewGuid().GetHashCode());
+                var s = "";
+                for (var i = 0; i <= 3; i++)
+                {
+                    var q = sj.Next(0, 255).ToString();
+                    if (i < 3)
+                    {
+                        s += (q + ".").ToString();
+                    }
+                    else
+                    {
+                        s += q.ToString();
+                    }
+                }
+                if (ipSearch.CheckIp(s))
+                {
+                    return s;
+                }
+            }
+        }
     }
 
 }
