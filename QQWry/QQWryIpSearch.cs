@@ -150,7 +150,7 @@ namespace QQWry
                 }
 
 #if DEBUG
-                System.Diagnostics.Debug.WriteLine($"使用IP数据库{_qqwryOptions.DbPath}");
+                System.Diagnostics.Debug.WriteLine(format:$"使用IP数据库{_qqwryOptions.DbPath}");
 #endif
 
                 _qqwryDbBytes = FileToBytes(_qqwryOptions.DbPath);
@@ -372,7 +372,7 @@ namespace QQWry
         private void UpdateDb()
         {
 #if DEBUG
-            System.Diagnostics.Debug.WriteLine("更新IP数据库{0}", _qqwryOptions.DbPath);
+            System.Diagnostics.Debug.WriteLine(format: "更新IP数据库{0}", _qqwryOptions.DbPath);
 #endif
             var copyWrite = GetCopyWrite();
             var qqwry = _httpClient.GetByteArrayAsync(_qqwryOptions.QQWryUrl).Result;
@@ -386,7 +386,7 @@ namespace QQWry
         private async Task UpdateDbAsync()
         {
 #if DEBUG
-            System.Diagnostics.Debug.WriteLine("更新IP数据库{0}", _qqwryOptions.DbPath);
+            System.Diagnostics.Debug.WriteLine(format: "更新IP数据库{0}", _qqwryOptions.DbPath);
 #endif
             var copyWrite = await GetCopyWriteAsync();
 
@@ -545,7 +545,9 @@ namespace QQWry
             }
             if (!File.Exists(ipDbPath))
             {
-                Console.WriteLine("无法找到IP数据库{0}", ipDbPath);
+#if DEBUG
+                System.Diagnostics.Debug.WriteLine(format:"无法找到IP数据库{0}", ipDbPath);
+#endif
                 return false;
             }
 
