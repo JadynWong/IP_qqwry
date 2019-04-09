@@ -1,0 +1,7 @@
+language: csharp
+solution:  ./QQWrySln.sln
+scripts:
+  - xbuild /p:Configuration=Release ./QQWrySln.sln
+  
+install:
+ -  nuget restore ./QQWrySln.sln
