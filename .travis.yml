@@ -1,3 +1,4 @@
+dist: xenial
 language: csharp
 mono: none
 dotnet: 2.2.202
@@ -8,3 +9,6 @@ scripts:
   - dotnet test .\QQWryTest -c Release
   - dotnet pack .\QQWry
   - dotnet pack .\QQWry.DependencyInjection
+global:
+  - DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true
+  - DOTNET_CLI_TELEMETRY_OPTOUT=1
