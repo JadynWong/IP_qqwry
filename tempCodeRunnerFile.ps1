@@ -1,50 +1,33 @@
-function EnsurePsbuildInstalled{  
-    [cmdletbinding()]
-    param(
-        [string]$psbuildInstallUri = 'https://raw.githubusercontent.com/ligershark/psbuild/master/src/GetPSBuild.ps1'
-    )
-    process{
-        if(-not (Get-Command "Invoke-MsBuild" -errorAction SilentlyContinue)){
-            'Installing psbuild from [{0}]' -f $psbuildInstallUri | Write-Verbose
-            (new-object Net.WebClient).DownloadString($psbuildInstallUri) | iex
-        }
-        else{
-            'psbuild already loaded, skipping download' | Write-Verbose
-        }
+$rootFolder = (Get-Item -Path "./" -Verbose).FullName
+$outputFolder = (Join-Path $rootFolder "artifacts")
+if(Test-Path $outputFolder) { Remove-Item $outputFolder -Force -Recurse }
 
-        # make sure it's loaded and throw if not
-        if(-not (Get-Command "Invoke-MsBuild" -errorAction SilentlyContinue)){
-            throw ('Unable to install/load psbuild from [{0}]' -f $psbuildInstallUri)
-        }
-    }
-}
+dotnet restore 
 
-function Exec  
-{
-    [CmdletBinding()]
-    param(
-        [Parameter(Position=0,Mandatory=1)][scriptblock]$cmd,
-        [Parameter(Position=1,Mandatory=0)][string]$errorMessage = ($msgs.error_bad_command -f $cmd)
-    )
-    & $cmd
-    if ($lastexitcode -ne 0) {
-        throw ("Exec: " + $errorMessage)
-    }
-}
+$revision = @{ $true = $env:APPVEYOR_BUILD_NUMBER; $false = 1 }[$NULL -ne $env:APPVEYOR_BUILD_NUMBER];
 
-if(Test-Path .\artifacts) { Remove-Item .\artifacts -Force -Recurse }
-
-EnsurePsbuildInstalled
-
-exec { & dotnet restore }
-
-Invoke-MSBuild
-
-$revision = @{ $true = $env:APPVEYOR_BUILD_NUMBER; $false = 1 }[$env:APPVEYOR_BUILD_NUMBER -ne $NULL];
 $revision = [convert]::ToInt32($revision, 10)
 
-exec { & dotnet test .\QQWryTest -c Release }
+Write-Output $revision 
 
-exec { & dotnet pack .\QQWry -o .\artifacts --version-suffix=$revision }
+$version = @{ $true = $env:APPVEYOR_BUILD_VERSION; $false = "-1"}[$NULL -ne $env:APPVEYOR_BUILD_VERSION];
 
-exec { & dotnet pack .\QQWry.DependencyInjection -o .\artifacts --version-suffix=$revision }
+if($version == "-1"){
+    throw "can't read version"
+}
+
+Write-Output $version 
+
+dotnet test .\QQWryTest -c Release
+
+dotnet build QQWrySln.sln
+
+dotnet pack .\QQWry -o $outputFolder -p:Version=$version --version-suffix=$revision
+
+dotnet pack .\QQWry.DependencyInjection -o $outputFolder -p:Version=$version --version-suffix=$revision
+
+Set-Location $outputFolder
+
+Get-ChildItem
+
+Set-Location $rootFolder

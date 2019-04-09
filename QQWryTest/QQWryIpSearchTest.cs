@@ -6,21 +6,15 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using QQWry;
 using Xunit;
+// ReSharper disable InconsistentNaming
 
-namespace QQWryTest
+namespace QQWry.Test
 {
     public class QQWryIpSearchTest
     {
-        protected QQWryIpSearch GetInstance(bool getNewDbFile = false)
+        protected QQWryIpSearch GetInstance()
         {
             var dbPath = Path.Combine(AppContext.BaseDirectory, "qqwry.dat");
-            if (getNewDbFile)
-            {
-                if (File.Exists(dbPath))
-                {
-                    File.Delete(dbPath);
-                }
-            }
 
 
             var option = new QQWryOptions(dbPath)
@@ -36,9 +30,9 @@ namespace QQWryTest
         {
             while (true)
             {
-                Random sj = new Random(Guid.NewGuid().GetHashCode());
+                var sj = new Random(Guid.NewGuid().GetHashCode());
                 var s = "";
-                for (int i = 0; i <= 3; i++)
+                for (var i = 0; i <= 3; i++)
                 {
                     var q = sj.Next(0, 255).ToString();
                     if (i < 3)
@@ -58,14 +52,35 @@ namespace QQWryTest
         }
 
         [Fact]
-        public void UpdateDbTest()
+        public void CheckTest()
         {
 
-            var ipSearch = GetInstance(true);
+            var ipSearch = GetInstance();
 
-            ipSearch.UpdateDb();
+            var ip = GetRandomIp(ipSearch);
 
-            Assert.True(true);
+            Assert.NotEmpty(ip);
+
+            ipSearch.Dispose();
+        }
+
+        [Fact]
+        public void InitTest()
+        {
+
+            var ipSearch = GetInstance();
+
+            var inited = ipSearch.Init();
+
+            Assert.True(inited);
+
+            Assert.True(ipSearch.IpCount > 0);
+
+            Assert.NotNull(ipSearch.Version);
+
+            var getNewInited = ipSearch.Init(true);
+
+            Assert.True(getNewInited);
 
             Assert.True(ipSearch.IpCount > 0);
 
@@ -75,13 +90,21 @@ namespace QQWryTest
         }
 
         [Fact]
-        public void InitTest()
+        public async Task InitAsyncTest()
         {
             var ipSearch = GetInstance();
 
-            var inited = ipSearch.Init();
+            var inited = await ipSearch.InitAsync();
 
             Assert.True(inited);
+
+            Assert.True(ipSearch.IpCount > 0);
+
+            Assert.NotNull(ipSearch.Version);
+
+            var getNewInited = await ipSearch.InitAsync(true);
+
+            Assert.True(getNewInited);
 
             Assert.True(ipSearch.IpCount > 0);
 
@@ -108,38 +131,6 @@ namespace QQWryTest
 
                 Assert.NotNull(ipLocation.Area);
             }
-
-            Assert.True(ipSearch.IpCount > 0);
-
-            Assert.NotNull(ipSearch.Version);
-
-            ipSearch.Dispose();
-        }
-
-        [Fact]
-        public async Task UpdateDbAsyncTestAsync()
-        {
-            var ipSearch = GetInstance(true);
-
-            await ipSearch.UpdateDbAsync();
-
-            Assert.True(true);
-
-            Assert.True(ipSearch.IpCount > 0);
-
-            Assert.NotNull(ipSearch.Version);
-
-            ipSearch.Dispose();
-        }
-
-        [Fact]
-        public async Task InitAsyncTestAsync()
-        {
-            var ipSearch = GetInstance();
-
-            var inited = await ipSearch.InitAsync();
-
-            Assert.True(inited);
 
             Assert.True(ipSearch.IpCount > 0);
 
@@ -178,7 +169,7 @@ namespace QQWryTest
         {
             var ipSearch = GetInstance();
 
-            var maxTask = 1000;
+            var maxTask = 10000;
 
             var p = Parallel.For(0, maxTask, new ParallelOptions()
             {

@@ -34,7 +34,7 @@ namespace QQWry.DependencyInjection
             {
                 throw new ArgumentNullException(nameof(optionAction));
             }
-            QQWryOptions options = new QQWryOptions();
+            var options = new QQWryOptions();
 
             return AddQQWry(services, options);
         }
