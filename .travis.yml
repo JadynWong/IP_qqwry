@@ -1,7 +1,10 @@
 language: csharp
-solution:  ./QQWrySln.sln
+mono: none
+dotnet: 2.2.202
+solution:  QQWrySln.sln
 scripts:
-  - xbuild /p:Configuration=Release ./QQWrySln.sln
-  
-install:
- -  nuget restore ./QQWrySln.sln
+  - dotnet restore
+  - dotnet build QQWrySln.sln
+  - dotnet test .\QQWryTest -c Release
+  - dotnet pack .\QQWry
+  - dotnet pack .\QQWry.DependencyInjection
