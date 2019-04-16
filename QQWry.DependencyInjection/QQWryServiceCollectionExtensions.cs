@@ -38,5 +38,16 @@ namespace QQWry.DependencyInjection
 
             return AddQQWry(services, options);
         }
+
+        public static IServiceCollection AddQQWry(this IServiceCollection services)
+        {
+            if (services == null)
+            {
+                throw new ArgumentNullException(nameof(services));
+            }
+            var options = new QQWryOptions();
+
+            return AddQQWry(services, options);
+        }
     }
 }

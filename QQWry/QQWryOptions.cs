@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 // ReSharper disable InconsistentNaming
 
@@ -17,10 +18,16 @@ namespace QQWry
             DbPath = dbPath;
         }
 
+        private string _dbPath = string.Empty;
+
         /// <summary>
         /// DbPath
         /// </summary>
-        public string DbPath { get; set; }
+        public string DbPath
+        {
+            get => string.IsNullOrWhiteSpace(_dbPath) ? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "qqwry.dat") : _dbPath;
+            set => _dbPath = value;
+        }
 
         /// <summary>
         /// CopyWriteUrl

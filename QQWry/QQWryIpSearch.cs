@@ -150,15 +150,13 @@ namespace QQWry
                 }
 
 #if DEBUG
-                System.Diagnostics.Debug.WriteLine($"使用IP数据库{_qqwryOptions.DbPath}");
+                System.Diagnostics.Debug.WriteLine(format: $"使用IP数据库{_qqwryOptions.DbPath}");
 #endif
 
                 _qqwryDbBytes = FileToBytes(_qqwryOptions.DbPath);
 
-                using (var stream = new MemoryStream(_qqwryDbBytes))
-                {
-                    _ipIndexCache = BlockToArray(ReadIpBlock(stream, out _startPosition));
-                }
+                _ipIndexCache = BlockToArray(ReadIpBlock(_qqwryDbBytes, out _startPosition));
+
                 _ipCount = null;
                 _version = null;
                 _init = true;
@@ -268,10 +266,8 @@ namespace QQWry
 #endif
                 _qqwryDbBytes = FileToBytes(_qqwryOptions.DbPath);
 
-                using (var stream = new MemoryStream(_qqwryDbBytes))
-                {
-                    _ipIndexCache = BlockToArray(ReadIpBlock(stream, out _startPosition));
-                }
+                _ipIndexCache = BlockToArray(ReadIpBlock(_qqwryDbBytes, out _startPosition));
+
                 _ipCount = null;
                 _version = null;
                 _init = true;
@@ -372,7 +368,7 @@ namespace QQWry
         private void UpdateDb()
         {
 #if DEBUG
-            System.Diagnostics.Debug.WriteLine("更新IP数据库{0}", _qqwryOptions.DbPath);
+            System.Diagnostics.Debug.WriteLine(format: "更新IP数据库{0}", _qqwryOptions.DbPath);
 #endif
             var copyWrite = GetCopyWrite();
             var qqwry = _httpClient.GetByteArrayAsync(_qqwryOptions.QQWryUrl).Result;
@@ -386,7 +382,7 @@ namespace QQWry
         private async Task UpdateDbAsync()
         {
 #if DEBUG
-            System.Diagnostics.Debug.WriteLine("更新IP数据库{0}", _qqwryOptions.DbPath);
+            System.Diagnostics.Debug.WriteLine(format: "更新IP数据库{0}", _qqwryOptions.DbPath);
 #endif
             var copyWrite = await GetCopyWriteAsync();
 
@@ -447,6 +443,7 @@ namespace QQWry
         /// <returns></returns>
         private static int SearchIp(long ip, long[] ipArray, int start, int end)
         {
+            //二分法 https://baike.baidu.com/item/%E4%BA%8C%E5%88%86%E6%B3%95%E6%9F%A5%E6%89%BE
             while (true)
             {
                 //计算中间索引
@@ -470,54 +467,64 @@ namespace QQWry
         /// 读取IP文件中索引区块
         ///</summary>
         ///<returns></returns>
-        private static byte[] ReadIpBlock(Stream stream, out long startPosition)
+        private static byte[] ReadIpBlock(byte[] bytes, out long startPosition)
         {
-            startPosition = ReadLongX(stream, 4);
-            var endPosition = ReadLongX(stream, 4);
+            long offset = 0;
+            startPosition = ReadLongX(bytes, offset, 4);
+            offset += 4;
+            var endPosition = ReadLongX(bytes, offset, 4);
+            offset = startPosition;
             var count = (endPosition - startPosition) / 7 + 1;//总记录数
-            stream.Position = startPosition;
+
             var ipBlock = new byte[count * 7];
-            stream.Read(ipBlock, 0, ipBlock.Length);
-            stream.Position = startPosition;
+            for (var i = 0; i < ipBlock.Length; i++)
+            {
+                ipBlock[i] = bytes[offset + i];
+            }
             return ipBlock;
         }
 
         /// <summary>
         ///  从IP文件中读取指定字节并转换位long
         /// </summary>
-        /// <param name="stream"></param>
+        /// <param name="bytes"></param>
         /// <param name="bytesCount">需要转换的字节数，主意不要超过8字节</param>
         /// <returns></returns>
-        private static long ReadLongX(Stream stream, int bytesCount)
+        private static long ReadLongX(byte[] bytes, long offset, int bytesCount)
         {
-            var bytes = new byte[8];
-            stream.Read(bytes, 0, bytesCount);
-            return BitConverter.ToInt64(bytes, 0);
+            var cBytes = new byte[8];
+            for (var i = 0; i < bytesCount; i++)
+            {
+                cBytes[i] = bytes[offset + i];
+            }
+            return BitConverter.ToInt64(cBytes, 0);
         }
 
         /// <summary>
         ///  从IP文件中读取字符串
         /// </summary>
-        /// <param name="stream"></param>
+        /// <param name="bytes"></param>
         /// <param name="flag">转向标志</param>
+        /// <param name="offset"></param>
         /// <returns></returns>
-        private static string ReadString(Stream stream, int flag)
+        private static string ReadString(byte[] bytes, int flag, ref long offset)
         {
             if (flag == 1 || flag == 2)//转向标志
             {
-                stream.Position = ReadLongX(stream, 3);
+                offset = ReadLongX(bytes, offset, 3);
             }
             else
             {
-                stream.Position -= 1;
+                offset -= 1;
             }
-
             var list = new List<byte>();
-            var b = (byte)stream.ReadByte();
+            var b = (byte)bytes[offset];
+            offset += 1;
             while (b > 0)
             {
                 list.Add(b);
-                b = (byte)stream.ReadByte();
+                b = (byte)bytes[offset];
+                offset += 1;
             }
             return Encoding.GetEncoding("GB2312").GetString(list.ToArray());
         }
@@ -545,7 +552,9 @@ namespace QQWry
             }
             if (!File.Exists(ipDbPath))
             {
-                Console.WriteLine("无法找到IP数据库{0}", ipDbPath);
+#if DEBUG
+                System.Diagnostics.Debug.WriteLine(format: "无法找到IP数据库{0}", ipDbPath);
+#endif
                 return false;
             }
 
@@ -597,33 +606,33 @@ namespace QQWry
         {
             long offset = SearchIp(ip, ipIndex, 0, ipIndex.Length) * 7 + 4;
 
-            using (var stream = new MemoryStream(qqwryDbBytes))
+            //偏移
+            var arrayOffset = startPosition + offset;
+            //跳过结束IP
+            arrayOffset = ReadLongX(qqwryDbBytes, arrayOffset, 3) + 4;
+            //读取标志
+            var flag = qqwryDbBytes[arrayOffset];
+            arrayOffset += 1;
+            //表示国家和地区被转向
+            if (flag == 1)
             {
-                stream.Position = startPosition;
-                //跳过起始IP
-                stream.Position += offset;
-                //跳过结束IP
-                stream.Position = ReadLongX(stream, 3) + 4;
-
-                //读取标志
-                var flag = stream.ReadByte();
-                //表示国家和地区被转向
-                if (flag == 1)
-                {
-                    stream.Position = ReadLongX(stream, 3);
-                    //再读标志
-                    flag = stream.ReadByte();
-                }
-                var countryOffset = stream.Position;
-                loc.Country = ReadString(stream, flag);
-
-                if (flag == 2)
-                {
-                    stream.Position = countryOffset + 3;
-                }
-                flag = stream.ReadByte();
-                loc.Area = ReadString(stream, flag);
+                arrayOffset = ReadLongX(qqwryDbBytes, arrayOffset, 3);
+                //再读标志
+                flag = qqwryDbBytes[arrayOffset];
+                arrayOffset += 1;
             }
+            var countryOffset = arrayOffset;
+            loc.Country = ReadString(qqwryDbBytes, flag, ref arrayOffset);
+
+            if (flag == 2)
+            {
+                arrayOffset = countryOffset + 3;
+            }
+
+            flag = qqwryDbBytes[arrayOffset];
+            arrayOffset += 1;
+            loc.Area = ReadString(qqwryDbBytes, flag, ref arrayOffset);
+
             if (" CZ88.NET".Equals(loc.Area, StringComparison.CurrentCultureIgnoreCase))
             {
                 loc.Area = string.Empty;
