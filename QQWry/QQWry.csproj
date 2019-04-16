@@ -11,6 +11,7 @@
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <Description>QQWry IP查询</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <LangVersion>7.3</LangVersion>
   </PropertyGroup>
   
   <ItemGroup>
