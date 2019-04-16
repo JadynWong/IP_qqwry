@@ -25,8 +25,21 @@ namespace QQWry
         /// </summary>
         public string DbPath
         {
-            get => string.IsNullOrWhiteSpace(_dbPath) ? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "qqwry.dat") : _dbPath;
-            set => _dbPath = value;
+            get
+            {
+                if (string.IsNullOrWhiteSpace(_dbPath))
+                {
+                    return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "qqwry.dat");
+                }
+                else
+                {
+                    return _dbPath;
+                }
+            }
+            set
+            {
+                _dbPath = value;
+            }
         }
 
         /// <summary>
