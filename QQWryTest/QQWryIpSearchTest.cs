@@ -169,21 +169,39 @@ namespace QQWry.Test
         {
             var ipSearch = GetInstance();
 
-            var maxTask = 10000;
+            var maxTask = 1000000;
 
             var p = Parallel.For(0, maxTask, new ParallelOptions()
             {
                 MaxDegreeOfParallelism = 100
-            }, async (num, ParallelLoopState) =>
+            },  (num, ParallelLoopState) =>
             {
                 var ip = GetRandomIp(ipSearch);
-                var ipLocation = await ipSearch.GetIpLocationAsync(ip);
+                var ipLocation = ipSearch.GetIpLocation(ip);
                 Assert.NotNull(ipLocation.Area);
                 Assert.True(ipSearch.IpCount > 0);
                 Assert.NotNull(ipSearch.Version);
             });
 
 
+        }
+
+        [Fact]
+        public async Task SingleThreadingSafeTest()
+        {
+            var ipSearch = GetInstance();
+
+            var maxTask = 1000000;
+
+            for (int i = 0; i < maxTask; i++)
+            {
+                var ip = GetRandomIp(ipSearch);
+                var ipLocation = await ipSearch.GetIpLocationAsync(ip);
+                Assert.NotNull(ipLocation.Area);
+                Assert.True(ipSearch.IpCount > 0);
+                Assert.NotNull(ipSearch.Version);
+
+            }
         }
     }
 }

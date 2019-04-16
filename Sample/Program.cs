@@ -24,7 +24,7 @@ namespace Sample
             Console.WriteLine("");
             Console.WriteLine("QQWry");
             var ipSearch = new QQWryIpSearch(config);
-
+            ipSearch.GetIpLocation("52.202.142.95");
             for (var i = 0; i < 100; i++)
             {
                 var ipLocation = ipSearch.GetIpLocation(GetRandomIp(ipSearch));
