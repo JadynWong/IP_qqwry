@@ -15,6 +15,8 @@ namespace Sample
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             Console.WriteLine("QQWry Sample!");
 
+            Console.WriteLine(new QQWryIpSearch(new QQWryOptions()).Version);
+
             var config = new QQWryOptions()
             {
                 DbPath = MapRootPath("~/IP/qqwry.dat")
