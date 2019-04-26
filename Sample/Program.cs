@@ -15,7 +15,6 @@ namespace Sample
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             Console.WriteLine("QQWry Sample!");
 
-            Console.WriteLine(new QQWryIpSearch(new QQWryOptions()).Version);
 
             var config = new QQWryOptions()
             {
@@ -26,6 +25,7 @@ namespace Sample
             Console.WriteLine("");
             Console.WriteLine("QQWry");
             var ipSearch = new QQWryIpSearch(config);
+            ipSearch.Init(true);
             ipSearch.GetIpLocation("52.202.142.95");
             for (var i = 0; i < 100; i++)
             {
