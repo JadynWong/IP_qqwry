@@ -6,7 +6,7 @@ using System.Text;
 
 namespace QQWry
 {
-    public static class BinaryReaderExtensions
+    internal static class BinaryReaderExtensions
     {
         // Note this MODIFIES THE GIVEN ARRAY then returns a reference to the modified array.
         public static byte[] Reverse(this byte[] b)

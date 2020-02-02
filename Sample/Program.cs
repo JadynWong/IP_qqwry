@@ -15,6 +15,7 @@ namespace Sample
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             Console.WriteLine("QQWry Sample!");
 
+
             var config = new QQWryOptions()
             {
                 DbPath = MapRootPath("~/IP/qqwry.dat")
@@ -24,6 +25,10 @@ namespace Sample
             Console.WriteLine("");
             Console.WriteLine("QQWry");
             var ipSearch = new QQWryIpSearch(config);
+            var copyWrite = ipSearch.GetCopyWrite();
+            var date = copyWrite.Text.Replace("纯真IP地址数据库 ", string.Empty);
+            var getNewDb = ipSearch.Version.IndexOf(date) == -1;
+            ipSearch.Init(getNewDb);
             ipSearch.GetIpLocation("52.202.142.95");
             for (var i = 0; i < 100; i++)
             {

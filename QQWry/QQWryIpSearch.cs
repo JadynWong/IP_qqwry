@@ -35,6 +35,8 @@ namespace QQWry
 
         private object _versionLock = new object();
 
+        private static readonly Encoding _encodingGb2312;
+
         /// <summary>
         /// 数据库 缓存
         /// </summary>
@@ -111,6 +113,7 @@ namespace QQWry
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 #endif
             _httpClient = new HttpClient();
+            _encodingGb2312 = Encoding.GetEncoding("gb2312");
         }
 
         public QQWryIpSearch(QQWryOptions options)
@@ -182,7 +185,21 @@ namespace QQWry
         /// <returns></returns>
         public virtual QQWryCopyWrite GetCopyWrite()
         {
-            var copywriteStream = _httpClient.GetStreamAsync(_qqwryOptions.CopyWriteUrl).Result;
+            //var copywriteStream = _httpClient.GetStreamAsync(_qqwryOptions.CopyWriteUrl).Result;
+
+            var request = new HttpRequestMessage(HttpMethod.Get, _qqwryOptions.CopyWriteUrl)
+            {
+                Version = new Version(1, 1)
+            };
+            if (_qqwryOptions.CopyWriteUrl.IndexOf("cz88.net", StringComparison.CurrentCultureIgnoreCase) != -1)
+            {
+                request.Headers.Add("Accept", "text/html, */*");
+                request.Headers.Add("User-Agent", "Mozilla/3.0 (compatible; Indy Library)");
+            }
+
+            var response = _httpClient.SendAsync(request).Result;
+            response.EnsureSuccessStatusCode();
+            var copywriteStream = response.Content.ReadAsStreamAsync().Result;
 
             if (copywriteStream == null)
             {
@@ -292,7 +309,19 @@ namespace QQWry
         /// <returns></returns>
         public virtual async Task<QQWryCopyWrite> GetCopyWriteAsync()
         {
-            var copywriteStream = await _httpClient.GetStreamAsync(_qqwryOptions.CopyWriteUrl).ConfigureAwait(false);
+            var request = new HttpRequestMessage(HttpMethod.Get, _qqwryOptions.CopyWriteUrl)
+            {
+                Version = new Version(1, 1)
+            };
+            if (_qqwryOptions.CopyWriteUrl.IndexOf("cz88.net", StringComparison.CurrentCultureIgnoreCase) != -1)
+            {
+                request.Headers.Add("Accept", "text/html, */*");
+                request.Headers.Add("User-Agent", "Mozilla/3.0 (compatible; Indy Library)");
+            }
+            var response = await _httpClient.SendAsync(request).ConfigureAwait(false);
+            response.EnsureSuccessStatusCode();
+            var copywriteStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+
             if (copywriteStream == null)
             {
                 throw new Exception("-1 copywrite can't null");
@@ -371,7 +400,18 @@ namespace QQWry
             System.Diagnostics.Debug.WriteLine(format: "更新IP数据库{0}", _qqwryOptions.DbPath);
 #endif
             var copyWrite = GetCopyWrite();
-            var qqwry = _httpClient.GetByteArrayAsync(_qqwryOptions.QQWryUrl).Result;
+            var request = new HttpRequestMessage(HttpMethod.Get, _qqwryOptions.QQWryUrl)
+            {
+                Version = new Version(1, 1)
+            };
+            if (_qqwryOptions.CopyWriteUrl.IndexOf("cz88.net", StringComparison.CurrentCultureIgnoreCase) != -1)
+            {
+                request.Headers.Add("Accept", "text/html, */*");
+                request.Headers.Add("User-Agent", "Mozilla/3.0 (compatible; Indy Library)");
+            }
+            var response = _httpClient.SendAsync(request).Result;
+            response.EnsureSuccessStatusCode();
+            var qqwry = response.Content.ReadAsByteArrayAsync().Result;
 
             ExtractWriteDbFile(copyWrite, qqwry, _qqwryOptions.DbPath);
         }
@@ -386,7 +426,18 @@ namespace QQWry
 #endif
             var copyWrite = await GetCopyWriteAsync();
 
-            var qqwry = await _httpClient.GetByteArrayAsync(_qqwryOptions.QQWryUrl).ConfigureAwait(false);
+            var request = new HttpRequestMessage(HttpMethod.Get, _qqwryOptions.QQWryUrl)
+            {
+                Version = new Version(1, 1)
+            };
+            if (_qqwryOptions.CopyWriteUrl.IndexOf("cz88.net", StringComparison.CurrentCultureIgnoreCase) != -1)
+            {
+                request.Headers.Add("Accept", "text/html, */*");
+                request.Headers.Add("User-Agent", "Mozilla/3.0 (compatible; Indy Library)");
+            }
+            var response = await _httpClient.SendAsync(request).ConfigureAwait(false);
+            response.EnsureSuccessStatusCode();
+            var qqwry = await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
 
             ExtractWriteDbFile(copyWrite, qqwry, _qqwryOptions.DbPath);
 
@@ -526,7 +577,7 @@ namespace QQWry
                 b = (byte)bytes[offset];
                 offset += 1;
             }
-            return Encoding.GetEncoding("GB2312").GetString(list.ToArray());
+            return _encodingGb2312.GetString(list.ToArray());
         }
 
         private static byte[] FileToBytes(string fileName)
@@ -646,14 +697,14 @@ namespace QQWry
             var binaryReader = new BinaryReader(copywriteStream);
             var copyWrite = new QQWryCopyWrite()
             {
-                Sign = Encoding.GetEncoding("gb2312").GetString(binaryReader.ReadBytesLE(4).Where(x => x != 0x00).ToArray()),
+                Sign = _encodingGb2312.GetString(binaryReader.ReadBytesLE(4).Where(x => x != 0x00).ToArray()),
                 Version = binaryReader.ReadUInt32LE(),
                 Unknown1 = binaryReader.ReadUInt32LE(),
                 Size = binaryReader.ReadUInt32LE(),
                 Unknown2 = binaryReader.ReadUInt32LE(),
                 Key = binaryReader.ReadUInt32LE(),
-                Text = Encoding.GetEncoding("gb2312").GetString(binaryReader.ReadBytesLE(128).Where(x => x != 0x00).ToArray()),
-                Link = Encoding.GetEncoding("gb2312").GetString(binaryReader.ReadBytesLE(128).Where(x => x != 0x00).ToArray())
+                Text = _encodingGb2312.GetString(binaryReader.ReadBytesLE(128).Where(x => x != 0x00).ToArray()),
+                Link = _encodingGb2312.GetString(binaryReader.ReadBytesLE(128).Where(x => x != 0x00).ToArray())
             };
             return copyWrite;
         }

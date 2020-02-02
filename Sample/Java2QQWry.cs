@@ -391,10 +391,10 @@ namespace Sample
         {
             long ret = 0;
             ipFile.Position = offset;
-            ret |= (ipFile.ReadByte() & 0xFF);
-            ret |= ((ipFile.ReadByte() << 8) & 0xFF00);
-            ret |= ((ipFile.ReadByte() << 16) & 0xFF0000);
-            ret |= ((ipFile.ReadByte() << 24) & 0xFF000000);
+            ret |= Convert.ToInt64(ipFile.ReadByte() & 0xFF);
+            ret |= Convert.ToInt64((ipFile.ReadByte() << 8) & 0xFF00);
+            ret |= Convert.ToInt64((ipFile.ReadByte() << 16) & 0xFF0000);
+            ret |= Convert.ToInt64((ipFile.ReadByte() << 24) & 0xFF000000);
             return ret;
         }
         //根据当前位置,读取3字节
@@ -410,9 +410,9 @@ namespace Sample
         {
             long ret = 0;
             ipFile.Position = offset;
-            ret |= (ipFile.ReadByte() & 0xFF);
-            ret |= ((ipFile.ReadByte() << 8) & 0xFF00);
-            ret |= ((ipFile.ReadByte() << 16) & 0xFF0000);
+            ret |= Convert.ToInt64(ipFile.ReadByte() & 0xFF);
+            ret |= Convert.ToInt64((ipFile.ReadByte() << 8) & 0xFF00);
+            ret |= Convert.ToInt64((ipFile.ReadByte() << 16) & 0xFF0000);
             return ret;
         }
         //从当前位置读取3字节
@@ -426,9 +426,9 @@ namespace Sample
         private long readLong3()
         {
             long ret = 0;
-            ret |= (ipFile.ReadByte() & 0xFF);
-            ret |= ((ipFile.ReadByte() << 8) & 0xFF00);
-            ret |= ((ipFile.ReadByte() << 16) & 0xFF0000);
+            ret |= Convert.ToInt64(ipFile.ReadByte() & 0xFF);
+            ret |= Convert.ToInt64((ipFile.ReadByte() << 8) & 0xFF00);
+            ret |= Convert.ToInt64((ipFile.ReadByte() << 16) & 0xFF0000);
             return ret;
         }
 
