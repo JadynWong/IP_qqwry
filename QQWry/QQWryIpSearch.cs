@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -34,34 +35,28 @@ namespace QQWry
 
         private object _versionLock = new object();
 
+        private static readonly Encoding _encodingGb2312;
+
         /// <summary>
         /// 数据库 缓存
         /// </summary>
         private byte[] _qqwryDbBytes;
-
         /// <summary>
         /// Ip索引 缓存
         /// </summary>
         private long[] _ipIndexCache;
-
-        private long[,] _prefMap = new long[256, 2];
-
         /// <summary>
         /// 起始定位
         /// </summary>
         private long _startPosition;
-
         /// <summary>
         /// 是否初始化
         /// </summary>
         private bool? _init;
-
         /// <summary>
         /// IP地址正则验证
         /// </summary>
-        private static Regex IpAddressRegex =>
-            new Regex(
-                @"(\b(?:(?:2(?:[0-4][0-9]|5[0-5])|[0-1]?[0-9]?[0-9])\.){3}(?:(?:2([0-4][0-9]|5[0-5])|[0-1]?[0-9]?[0-9]))\b)");
+        private static Regex IpAddressRegex => new Regex(@"(\b(?:(?:2(?:[0-4][0-9]|5[0-5])|[0-1]?[0-9]?[0-9])\.){3}(?:(?:2([0-4][0-9]|5[0-5])|[0-1]?[0-9]?[0-9]))\b)");
 
         private static readonly HttpClient _httpClient;
 
@@ -99,14 +94,12 @@ namespace QQWry
                 {
                     return _version;
                 }
-
                 lock (_versionLock)
                 {
                     if (!string.IsNullOrWhiteSpace(_version))
                     {
                         return _version;
                     }
-
                     _version = GetIpLocation("255.255.255.255").Area;
                     return _version;
                 }
@@ -120,6 +113,7 @@ namespace QQWry
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 #endif
             _httpClient = new HttpClient();
+            _encodingGb2312 = Encoding.GetEncoding("gb2312");
         }
 
         public QQWryIpSearch(QQWryOptions options)
@@ -144,7 +138,6 @@ namespace QQWry
             {
                 return _init.Value;
             }
-
             _initLock.Wait();
             try
             {
@@ -162,14 +155,10 @@ namespace QQWry
 #if DEBUG
                 System.Diagnostics.Debug.WriteLine(format: $"使用IP数据库{_qqwryOptions.DbPath}");
 #endif
-                //结构 [文件头8字节|记录区|索引区]
+
                 _qqwryDbBytes = FileToBytes(_qqwryOptions.DbPath);
 
-                //读取文件头 和 索引区
-                var ipIndexBlock = ReadIpBlock(_qqwryDbBytes, out _startPosition, out var endPosition);
-
-                //读取索引区
-                _ipIndexCache = BlockToArray(ipIndexBlock);
+                _ipIndexCache = BlockToArray(ReadIpBlock(_qqwryDbBytes, out _startPosition));
 
                 _ipCount = null;
                 _version = null;
@@ -196,7 +185,21 @@ namespace QQWry
         /// <returns></returns>
         public virtual QQWryCopyWrite GetCopyWrite()
         {
-            var copywriteStream = _httpClient.GetStreamAsync(_qqwryOptions.CopyWriteUrl).Result;
+            //var copywriteStream = _httpClient.GetStreamAsync(_qqwryOptions.CopyWriteUrl).Result;
+
+            var request = new HttpRequestMessage(HttpMethod.Get, _qqwryOptions.CopyWriteUrl)
+            {
+                Version = new Version(1, 1)
+            };
+            if (_qqwryOptions.CopyWriteUrl.IndexOf("cz88.net", StringComparison.CurrentCultureIgnoreCase) != -1)
+            {
+                request.Headers.Add("Accept", "text/html, */*");
+                request.Headers.Add("User-Agent", "Mozilla/3.0 (compatible; Indy Library)");
+            }
+
+            var response = _httpClient.SendAsync(request).Result;
+            response.EnsureSuccessStatusCode();
+            var copywriteStream = response.Content.ReadAsStreamAsync().Result;
 
             if (copywriteStream == null)
             {
@@ -252,8 +255,7 @@ namespace QQWry
         /// </summary>
         /// <param name="token"></param>
         /// <returns></returns>
-        public virtual async Task<bool> InitAsync(bool getNewDb = false,
-            CancellationToken token = default(CancellationToken))
+        public virtual async Task<bool> InitAsync(bool getNewDb = false, CancellationToken token = default(CancellationToken))
         {
             if (_init != null && !getNewDb)
             {
@@ -279,14 +281,9 @@ namespace QQWry
 #if DEBUG
                 System.Diagnostics.Debug.WriteLine("使用IP数据库{0}", _qqwryOptions.DbPath);
 #endif
-                //结构 [文件头8字节|记录区|索引区]
                 _qqwryDbBytes = FileToBytes(_qqwryOptions.DbPath);
 
-                //读取文件头 和 索引区
-                var ipIndexBlock = ReadIpBlock(_qqwryDbBytes, out _startPosition, out var endPosition);
-
-                //读取索引区
-                _ipIndexCache = BlockToArray(ipIndexBlock);
+                _ipIndexCache = BlockToArray(ReadIpBlock(_qqwryDbBytes, out _startPosition));
 
                 _ipCount = null;
                 _version = null;
@@ -312,7 +309,19 @@ namespace QQWry
         /// <returns></returns>
         public virtual async Task<QQWryCopyWrite> GetCopyWriteAsync()
         {
-            var copywriteStream = await _httpClient.GetStreamAsync(_qqwryOptions.CopyWriteUrl).ConfigureAwait(false);
+            var request = new HttpRequestMessage(HttpMethod.Get, _qqwryOptions.CopyWriteUrl)
+            {
+                Version = new Version(1, 1)
+            };
+            if (_qqwryOptions.CopyWriteUrl.IndexOf("cz88.net", StringComparison.CurrentCultureIgnoreCase) != -1)
+            {
+                request.Headers.Add("Accept", "text/html, */*");
+                request.Headers.Add("User-Agent", "Mozilla/3.0 (compatible; Indy Library)");
+            }
+            var response = await _httpClient.SendAsync(request).ConfigureAwait(false);
+            response.EnsureSuccessStatusCode();
+            var copywriteStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+
             if (copywriteStream == null)
             {
                 throw new Exception("-1 copywrite can't null");
@@ -328,8 +337,7 @@ namespace QQWry
         /// <param name="strIp">要查询的IP地址</param>
         /// <param name="token"></param>
         /// <returns></returns>
-        public virtual async Task<IpLocation> GetIpLocationAsync(string strIp,
-            CancellationToken token = default(CancellationToken))
+        public virtual async Task<IpLocation> GetIpLocationAsync(string strIp, CancellationToken token = default(CancellationToken))
         {
             var loc = new IpLocation
             {
@@ -339,7 +347,6 @@ namespace QQWry
             {
                 return loc;
             }
-
             long ip = IpToLong(strIp);
             if (ip == IpToLong("127.0.0.1"))
             {
@@ -347,15 +354,12 @@ namespace QQWry
                 loc.Area = string.Empty;
                 return loc;
             }
-
             if (!await InitAsync(false, token))
             {
                 return loc;
             }
-
             return ReadLocation(loc, ip, _startPosition, _ipIndexCache, _qqwryDbBytes);
         }
-
         #endregion
 
         /// <inheritdoc />
@@ -378,6 +382,7 @@ namespace QQWry
             _initLock?.Dispose();
             _versionLock = null;
             _qqwryDbBytes = null;
+            _qqwryDbBytes = null;
             _ipIndexCache = null;
             _init = null;
         }
@@ -395,7 +400,18 @@ namespace QQWry
             System.Diagnostics.Debug.WriteLine(format: "更新IP数据库{0}", _qqwryOptions.DbPath);
 #endif
             var copyWrite = GetCopyWrite();
-            var qqwry = _httpClient.GetByteArrayAsync(_qqwryOptions.QQWryUrl).Result;
+            var request = new HttpRequestMessage(HttpMethod.Get, _qqwryOptions.QQWryUrl)
+            {
+                Version = new Version(1, 1)
+            };
+            if (_qqwryOptions.CopyWriteUrl.IndexOf("cz88.net", StringComparison.CurrentCultureIgnoreCase) != -1)
+            {
+                request.Headers.Add("Accept", "text/html, */*");
+                request.Headers.Add("User-Agent", "Mozilla/3.0 (compatible; Indy Library)");
+            }
+            var response = _httpClient.SendAsync(request).Result;
+            response.EnsureSuccessStatusCode();
+            var qqwry = response.Content.ReadAsByteArrayAsync().Result;
 
             ExtractWriteDbFile(copyWrite, qqwry, _qqwryOptions.DbPath);
         }
@@ -410,7 +426,18 @@ namespace QQWry
 #endif
             var copyWrite = await GetCopyWriteAsync();
 
-            var qqwry = await _httpClient.GetByteArrayAsync(_qqwryOptions.QQWryUrl).ConfigureAwait(false);
+            var request = new HttpRequestMessage(HttpMethod.Get, _qqwryOptions.QQWryUrl)
+            {
+                Version = new Version(1, 1)
+            };
+            if (_qqwryOptions.CopyWriteUrl.IndexOf("cz88.net", StringComparison.CurrentCultureIgnoreCase) != -1)
+            {
+                request.Headers.Add("Accept", "text/html, */*");
+                request.Headers.Add("User-Agent", "Mozilla/3.0 (compatible; Indy Library)");
+            }
+            var response = await _httpClient.SendAsync(request).ConfigureAwait(false);
+            response.EnsureSuccessStatusCode();
+            var qqwry = await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
 
             ExtractWriteDbFile(copyWrite, qqwry, _qqwryOptions.DbPath);
 
@@ -445,30 +472,28 @@ namespace QQWry
         ///<param name="ipBlock"></param>
         private static long[] BlockToArray(byte[] ipBlock)
         {
-            //[起始IP,4字节|IP记录偏移,3字节]
             var ipArray = new long[ipBlock.Length / 7];
             var ipIndex = 0;
             var temp = new byte[8];
             for (var i = 0; i < ipBlock.Length; i += 7)
             {
                 Array.Copy(ipBlock, i, temp, 0, 4);
-
                 ipArray[ipIndex] = BitConverter.ToInt64(temp, 0);
                 ipIndex++;
             }
-
             return ipArray;
         }
 
         /// <summary>
         ///  从IP数组中搜索指定IP并返回其索引
         /// </summary>
-        /// <param name="target"></param>
-        /// <param name="array">IP数组</param>
+        /// <param name="ip"></param>
+        /// <param name="ipArray">IP数组</param>
+        /// <param name="start">指定搜索的起始位置</param>
+        /// <param name="end">指定搜索的结束位置</param>
         /// <returns></returns>
-        private static int BinarySearch(long[] array, long target)
+        private static int SearchIp(long ip, long[] ipArray, int start, int end)
         {
-            int start = 0, end = array.Length - 1;
             //二分法 https://baike.baidu.com/item/%E4%BA%8C%E5%88%86%E6%B3%95%E6%9F%A5%E6%89%BE
             while (true)
             {
@@ -478,13 +503,13 @@ namespace QQWry
                 {
                     return middle;
                 }
-                else if (target < array[middle])
+                else if (ip < ipArray[middle])
                 {
-                    end = middle - 1;
+                    end = middle;
                 }
                 else
                 {
-                    start = middle + 1;
+                    start = middle;
                 }
             }
         }
@@ -493,21 +518,20 @@ namespace QQWry
         /// 读取IP文件中索引区块
         ///</summary>
         ///<returns></returns>
-        private static byte[] ReadIpBlock(byte[] bytes, out long startPosition, out long endPosition)
+        private static byte[] ReadIpBlock(byte[] bytes, out long startPosition)
         {
             long offset = 0;
             startPosition = ReadLongX(bytes, offset, 4);
             offset += 4;
-            endPosition = ReadLongX(bytes, offset, 4);
+            var endPosition = ReadLongX(bytes, offset, 4);
             offset = startPosition;
-            var count = (endPosition - startPosition) / 7 + 1; //总记录数
+            var count = (endPosition - startPosition) / 7 + 1;//总记录数
 
             var ipBlock = new byte[count * 7];
             for (var i = 0; i < ipBlock.Length; i++)
             {
                 ipBlock[i] = bytes[offset + i];
             }
-
             return ipBlock;
         }
 
@@ -524,7 +548,6 @@ namespace QQWry
             {
                 cBytes[i] = bytes[offset + i];
             }
-
             return BitConverter.ToInt64(cBytes, 0);
         }
 
@@ -537,7 +560,7 @@ namespace QQWry
         /// <returns></returns>
         private static string ReadString(byte[] bytes, int flag, ref long offset)
         {
-            if (flag == 1 || flag == 2) //转向标志
+            if (flag == 1 || flag == 2)//转向标志
             {
                 offset = ReadLongX(bytes, offset, 3);
             }
@@ -545,7 +568,6 @@ namespace QQWry
             {
                 offset -= 1;
             }
-
             var list = new List<byte>();
             var b = (byte)bytes[offset];
             offset += 1;
@@ -555,20 +577,14 @@ namespace QQWry
                 b = (byte)bytes[offset];
                 offset += 1;
             }
-
-            return Encoding.GetEncoding("GB2312").GetString(list.ToArray());
+            return _encodingGb2312.GetString(list.ToArray());
         }
 
-        /// <summary>
-        /// 加载文件到字节数组
-        /// </summary>
-        /// <param name="fileName"></param>
-        /// <returns></returns>
         private static byte[] FileToBytes(string fileName)
         {
-            using (var fileStream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
+            using (FileStream fileStream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
-                var bytes = new byte[fileStream.Length];
+                byte[] bytes = new byte[fileStream.Length];
 
                 fileStream.Read(bytes, 0, bytes.Length);
 
@@ -585,7 +601,6 @@ namespace QQWry
             {
                 Directory.CreateDirectory(dir ?? throw new InvalidOperationException());
             }
-
             if (!File.Exists(ipDbPath))
             {
 #if DEBUG
@@ -615,7 +630,6 @@ namespace QQWry
             {
                 throw new Exception("-4 size error");
             }
-
             //decrypt
             var head = new byte[0x200];
             var key = copyWrite.Key;
@@ -624,7 +638,6 @@ namespace QQWry
                 key = (key * 0x805 + 1) & 0xff;
                 head[i] = (byte)(qqwry[i] ^ key);
             }
-
             Array.Copy(head, 0, qqwry, 0, head.Length);
             var dataBuffer = new byte[4096];
 
@@ -642,7 +655,7 @@ namespace QQWry
 
         private static IpLocation ReadLocation(IpLocation loc, long ip, long startPosition, long[] ipIndex, byte[] qqwryDbBytes)
         {
-            long offset = BinarySearch(ipIndex, ip) * 7 + 4;
+            long offset = SearchIp(ip, ipIndex, 0, ipIndex.Length) * 7 + 4;
 
             //偏移
             var arrayOffset = startPosition + offset;
@@ -659,7 +672,6 @@ namespace QQWry
                 flag = qqwryDbBytes[arrayOffset];
                 arrayOffset += 1;
             }
-
             var countryOffset = arrayOffset;
             loc.Country = ReadString(qqwryDbBytes, flag, ref arrayOffset);
 
@@ -685,17 +697,14 @@ namespace QQWry
             var binaryReader = new BinaryReader(copywriteStream);
             var copyWrite = new QQWryCopyWrite()
             {
-                Sign = Encoding.GetEncoding("gb2312")
-                    .GetString(binaryReader.ReadBytesLE(4).Where(x => x != 0x00).ToArray()),
+                Sign = _encodingGb2312.GetString(binaryReader.ReadBytesLE(4).Where(x => x != 0x00).ToArray()),
                 Version = binaryReader.ReadUInt32LE(),
                 Unknown1 = binaryReader.ReadUInt32LE(),
                 Size = binaryReader.ReadUInt32LE(),
                 Unknown2 = binaryReader.ReadUInt32LE(),
                 Key = binaryReader.ReadUInt32LE(),
-                Text = Encoding.GetEncoding("gb2312")
-                    .GetString(binaryReader.ReadBytesLE(128).Where(x => x != 0x00).ToArray()),
-                Link = Encoding.GetEncoding("gb2312")
-                    .GetString(binaryReader.ReadBytesLE(128).Where(x => x != 0x00).ToArray())
+                Text = _encodingGb2312.GetString(binaryReader.ReadBytesLE(128).Where(x => x != 0x00).ToArray()),
+                Link = _encodingGb2312.GetString(binaryReader.ReadBytesLE(128).Where(x => x != 0x00).ToArray())
             };
             return copyWrite;
         }
