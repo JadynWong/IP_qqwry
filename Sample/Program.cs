@@ -2,7 +2,11 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text;
+
+using BenchmarkDotNet.Running;
+
 using Microsoft.Extensions.DependencyInjection;
+
 using QQWry;
 using QQWry.DependencyInjection;
 
@@ -12,31 +16,33 @@ namespace Sample
     {
         private static void Main(string[] args)
         {
-            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             Console.WriteLine("QQWry Sample!");
-
 
             var config = new QQWryOptions()
             {
-                DbPath = MapRootPath("~/IP/qqwry.dat")
+                DbPath = Test.MapRootPath("qqwry.dat")
             };
-
             #region QQWry
             Console.WriteLine("");
             Console.WriteLine("QQWry");
+
             var ipSearch = new QQWryIpSearch(config);
+            var ipSearchMode2 = new QQWryIpSearchMode2(config);
+
             var copyWrite = ipSearch.GetCopyWrite();
             var date = copyWrite.Text.Replace("纯真IP地址数据库 ", string.Empty);
             var getNewDb = ipSearch.Version.IndexOf(date) == -1;
+
             ipSearch.Init(getNewDb);
-            ipSearch.GetIpLocation("52.202.142.95");
+            ipSearchMode2.Init(getNewDb);
+
             for (var i = 0; i < 100; i++)
             {
-                var ipLocation = ipSearch.GetIpLocation(GetRandomIp(ipSearch));
+                var ipLocation = ipSearchMode2.GetIpLocation(Test.GetRandomIp(ipSearchMode2));
                 Write(ipLocation);
             }
-            Console.WriteLine("记录总数" + ipSearch.IpCount);
-            Console.WriteLine("版本" + ipSearch.Version);
+            Console.WriteLine("记录总数" + ipSearchMode2.IpCount);
+            Console.WriteLine("版本" + ipSearchMode2.Version);
 
             #endregion
 
@@ -54,7 +60,7 @@ namespace Sample
                 var ipSearchInterface = scope.ServiceProvider.GetRequiredService<IIpSearch>();
                 for (var i = 0; i < 100; i++)
                 {
-                    var ipLocation = ipSearch.GetIpLocation(GetRandomIp(ipSearch));
+                    var ipLocation = ipSearch.GetIpLocation(Test.GetRandomIp(ipSearch));
                     Write(ipLocation);
                 }
                 Console.WriteLine("记录总数" + ipSearchInterface.IpCount);
@@ -67,15 +73,17 @@ namespace Sample
             #region java to QQWry
             Console.WriteLine("");
             Console.WriteLine("java to QQWry");
-            var qqWry = new Java2QQWry(config.DbPath);
+            var javaQQWry = new Java2QQWry(config.DbPath);
             for (var i = 0; i < 100; i++)
             {
-                var ip = GetRandomIp(ipSearch);
-                var ipLocation = qqWry.SearchIPLocation(ip);
+                var ip = Test.GetRandomIp(ipSearch);
+                var ipLocation = javaQQWry.SearchIPLocation(ip);
                 Write(ip, ipLocation);
             }
 
             #endregion
+
+            var summary = BenchmarkRunner.Run<Test>();
 
             Console.ReadKey();
         }
@@ -94,7 +102,7 @@ namespace Sample
         /// Maps a virtual path to a physical disk path.
         /// </summary>
         /// <param name="path">The path to map. E.g. "~/bin"</param>
-        /// <returns>The physical path. E.g. "c:\inetpub\wwwroot\bin"</returns>
+        /// <returns>The physical path. E.g. "c:\\inetpub\\wwwroot\\bin"</returns>
         public static string MapRootPath(string path)
         {
             path = path.Replace("~/", "").TrimStart('/').Replace('/', '\\');

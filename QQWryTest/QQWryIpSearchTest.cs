@@ -169,7 +169,7 @@ namespace QQWry.Test
         {
             var ipSearch = GetInstance();
 
-            var maxTask = 100000;
+            var maxTask = 30000;
 
             var p = Parallel.For(0, maxTask, new ParallelOptions()
             {
