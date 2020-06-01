@@ -1,6 +1,8 @@
 using ICSharpCode.SharpZipLib.Core;
 using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
+
 using QQWry;
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -17,13 +19,32 @@ namespace QQWry
     /// <summary>
     /// QQWryIpSearch 请作为单例使用 数据库缓存在内存
     /// </summary>
-    public class QQWryIpSearch : IDisposable, IIpSearch
+    public class QQWryIpSearchMode2 : IDisposable, IIpSearch
     {
         private readonly SemaphoreSlim _initLock = new SemaphoreSlim(initialCount: 1, maxCount: 1);
 
         private object _versionLock = new object();
 
-        private static readonly Encoding _encodingGb2312;
+
+        ///<summary>
+        ///第一种模式
+        ///</summary>
+        private const byte REDIRECT_MODE_1 = 0x01;
+
+        ///<summary>
+        ///第二种模式
+        ///</summary>
+        private const byte REDIRECT_MODE_2 = 0x02;
+
+        ///<summary>
+        ///每条记录长度
+        ///</summary>
+        private const int IP_RECORD_LENGTH = 7;
+
+        private const string unCountry = "未知国家";
+        private const string unArea = "未知地区";
+
+        private readonly Encoding _encodingGb2312;
 
         /// <summary>
         /// 数据库 缓存
@@ -31,14 +52,14 @@ namespace QQWry
         private byte[] _qqwryDbBytes;
 
         /// <summary>
-        /// Ip索引 缓存
-        /// </summary>
-        private long[] _ipIndexCache;
-
-        /// <summary>
         /// 起始定位
         /// </summary>
         private long _startPosition;
+
+        /// <summary>
+        /// 结束定位
+        /// </summary>
+        private long _endPosition;
 
         /// <summary>
         /// 是否初始化
@@ -50,12 +71,10 @@ namespace QQWry
         /// </summary>
         private static Regex IpAddressRegex => new Regex(@"(\b(?:(?:2(?:[0-4][0-9]|5[0-5])|[0-1]?[0-9]?[0-9])\.){3}(?:(?:2([0-4][0-9]|5[0-5])|[0-1]?[0-9]?[0-9]))\b)");
 
-        private static readonly HttpClient _httpClient;
+        private readonly HttpClient _httpClient;
 
         private readonly QQWryOptions _qqwryOptions;
-
         private int? _ipCount;
-
         private string _version;
 
         /// <inheritdoc />
@@ -69,7 +88,6 @@ namespace QQWry
                 if (!_ipCount.HasValue)
                 {
                     Init();
-                    _ipCount = _ipIndexCache.Length;
                 }
 
                 return _ipCount.Value;
@@ -100,20 +118,20 @@ namespace QQWry
             }
         }
 
-        static QQWryIpSearch()
+        static QQWryIpSearchMode2()
         {
 #if NET45
 
 #else
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 #endif
-            _httpClient = new HttpClient();
-            _encodingGb2312 = Encoding.GetEncoding("gb2312");
         }
 
-        public QQWryIpSearch(QQWryOptions options)
+        public QQWryIpSearchMode2(QQWryOptions options)
         {
             _qqwryOptions = options;
+            _httpClient = new HttpClient();
+            _encodingGb2312 = Encoding.GetEncoding("gb2312");
         }
 
         #region public Method
@@ -153,9 +171,13 @@ namespace QQWry
 
                 _qqwryDbBytes = FileToBytes(_qqwryOptions.DbPath);
 
-                _ipIndexCache = BlockToArray(ReadIpBlock(_qqwryDbBytes, out _startPosition));
+                var ipFile = new IpDbAccessor(_qqwryDbBytes);
+                _startPosition = ReadLongX(ipFile, 4);
+                _endPosition = ReadLongX(ipFile, 4);
 
-                _ipCount = null;
+                //总记录数
+                _ipCount = Convert.ToInt32((_endPosition - _startPosition) / IP_RECORD_LENGTH + 1);
+
                 _version = null;
                 _init = true;
             }
@@ -180,8 +202,6 @@ namespace QQWry
         /// <returns></returns>
         public virtual QQWryCopyWrite GetCopyWrite()
         {
-            //var copywriteStream = _httpClient.GetStreamAsync(_qqwryOptions.CopyWriteUrl).Result;
-
             var request = new HttpRequestMessage(HttpMethod.Get, _qqwryOptions.CopyWriteUrl)
             {
                 Version = new Version(1, 1)
@@ -217,11 +237,6 @@ namespace QQWry
                 Ip = strIp
             };
 
-            //if (!CheckIp(strIp))
-            //{
-            //    return loc;
-            //}
-
             var ip = IpToLong(strIp);
 
             if (ip == IpToLong("127.0.0.1"))
@@ -236,7 +251,7 @@ namespace QQWry
                 return loc;
             }
 
-            return ReadLocation(loc, ip, _startPosition, _ipIndexCache, _qqwryDbBytes);
+            return ReadLocation(loc, strIp);
         }
 
         #endregion
@@ -250,7 +265,7 @@ namespace QQWry
         /// </summary>
         /// <param name="token"></param>
         /// <returns></returns>
-        public virtual async Task<bool> InitAsync(bool getNewDb = false, CancellationToken token = default)
+        public virtual async Task<bool> InitAsync(bool getNewDb = false, CancellationToken token = default(CancellationToken))
         {
             if (_init != null && !getNewDb)
             {
@@ -278,9 +293,13 @@ namespace QQWry
 #endif
                 _qqwryDbBytes = FileToBytes(_qqwryOptions.DbPath);
 
-                _ipIndexCache = BlockToArray(ReadIpBlock(_qqwryDbBytes, out _startPosition));
+                var ipFile = new IpDbAccessor(_qqwryDbBytes);
+                _startPosition = ReadLongX(ipFile, 4);
+                _endPosition = ReadLongX(ipFile, 4);
 
-                _ipCount = null;
+                //总记录数
+                _ipCount = Convert.ToInt32((_endPosition - _startPosition) / IP_RECORD_LENGTH + 1);
+
                 _version = null;
                 _init = true;
             }
@@ -332,16 +351,13 @@ namespace QQWry
         /// <param name="strIp">要查询的IP地址</param>
         /// <param name="token"></param>
         /// <returns></returns>
-        public virtual async Task<IpLocation> GetIpLocationAsync(string strIp, CancellationToken token = default)
+        public virtual async Task<IpLocation> GetIpLocationAsync(string strIp, CancellationToken token = default(CancellationToken))
         {
             var loc = new IpLocation
             {
                 Ip = strIp
             };
-            //if (!CheckIp(strIp))
-            //{
-            //    return loc;
-            //}
+
             long ip = IpToLong(strIp);
             if (ip == IpToLong("127.0.0.1"))
             {
@@ -353,7 +369,7 @@ namespace QQWry
             {
                 return loc;
             }
-            return ReadLocation(loc, ip, _startPosition, _ipIndexCache, _qqwryDbBytes);
+            return ReadLocation(loc, strIp);
         }
         #endregion
 
@@ -377,8 +393,6 @@ namespace QQWry
             _initLock?.Dispose();
             _versionLock = null;
             _qqwryDbBytes = null;
-            _qqwryDbBytes = null;
-            _ipIndexCache = null;
             _init = null;
         }
 
@@ -441,10 +455,6 @@ namespace QQWry
             _version = null;
         }
 
-        #endregion
-
-        #region static Method
-
         ///<summary>
         /// 将字符串形式的IP转换位long
         ///</summary>
@@ -459,120 +469,6 @@ namespace QQWry
                 ipBytes[i] = byte.Parse(strArr[3 - i]);
             }
             return BitConverter.ToInt64(ipBytes, 0);
-        }
-
-        ///<summary>
-        /// 将索引区字节块中的起始IP转换成Long数组
-        ///</summary>
-        ///<param name="ipBlock"></param>
-        private static long[] BlockToArray(byte[] ipBlock)
-        {
-            var ipArray = new long[ipBlock.Length / 7];
-            var ipIndex = 0;
-            var temp = new byte[8];
-            for (var i = 0; i < ipBlock.Length; i += 7)
-            {
-                Array.Copy(ipBlock, i, temp, 0, 4);
-                ipArray[ipIndex] = BitConverter.ToInt64(temp, 0);
-                ipIndex++;
-            }
-            return ipArray;
-        }
-
-        /// <summary>
-        ///  从IP数组中搜索指定IP并返回其索引
-        /// </summary>
-        /// <param name="ip"></param>
-        /// <param name="ipArray">IP数组</param>
-        /// <param name="start">指定搜索的起始位置</param>
-        /// <param name="end">指定搜索的结束位置</param>
-        /// <returns></returns>
-        private static int SearchIp(long ip, long[] ipArray, int start, int end)
-        {
-            //二分法 https://baike.baidu.com/item/%E4%BA%8C%E5%88%86%E6%B3%95%E6%9F%A5%E6%89%BE
-            while (true)
-            {
-                //计算中间索引
-                var middle = (start + end) / 2;
-                if (middle == start)
-                {
-                    return middle;
-                }
-                else if (ip < ipArray[middle])
-                {
-                    end = middle;
-                }
-                else
-                {
-                    start = middle;
-                }
-            }
-        }
-
-        ///<summary>
-        /// 读取IP文件中索引区块
-        ///</summary>
-        ///<returns></returns>
-        private static byte[] ReadIpBlock(byte[] bytes, out long startPosition)
-        {
-            long offset = 0;
-            startPosition = ReadLongX(bytes, offset, 4);
-            offset += 4;
-            var endPosition = ReadLongX(bytes, offset, 4);
-            offset = startPosition;
-            var count = (endPosition - startPosition) / 7 + 1;//总记录数
-
-            var ipBlock = new byte[count * 7];
-            for (var i = 0; i < ipBlock.Length; i++)
-            {
-                ipBlock[i] = bytes[offset + i];
-            }
-            return ipBlock;
-        }
-
-        /// <summary>
-        ///  从IP文件中读取指定字节并转换位long
-        /// </summary>
-        /// <param name="bytes"></param>
-        /// <param name="bytesCount">需要转换的字节数，主意不要超过8字节</param>
-        /// <returns></returns>
-        private static long ReadLongX(byte[] bytes, long offset, int bytesCount)
-        {
-            var cBytes = new byte[8];
-            for (var i = 0; i < bytesCount; i++)
-            {
-                cBytes[i] = bytes[offset + i];
-            }
-            return BitConverter.ToInt64(cBytes, 0);
-        }
-
-        /// <summary>
-        ///  从IP文件中读取字符串
-        /// </summary>
-        /// <param name="bytes"></param>
-        /// <param name="flag">转向标志</param>
-        /// <param name="offset"></param>
-        /// <returns></returns>
-        private static string ReadString(byte[] bytes, int flag, ref long offset)
-        {
-            if (flag == 1 || flag == 2)//转向标志
-            {
-                offset = ReadLongX(bytes, offset, 3);
-            }
-            else
-            {
-                offset -= 1;
-            }
-            var list = new List<byte>();
-            var b = (byte)bytes[offset];
-            offset += 1;
-            while (b > 0)
-            {
-                list.Add(b);
-                b = (byte)bytes[offset];
-                offset += 1;
-            }
-            return _encodingGb2312.GetString(list.ToArray());
         }
 
         private static byte[] FileToBytes(string fileName)
@@ -648,46 +544,302 @@ namespace QQWry
             }
         }
 
-        private static IpLocation ReadLocation(IpLocation loc, long ip, long startPosition, long[] ipIndex, byte[] qqwryDbBytes)
+        ///<summary>
+        ///搜索IP地址搜索
+        ///</summary>
+        ///<param name="ip"></param>
+        ///<returns></returns>
+        public IpLocation ReadLocation(IpLocation loc, string ip)
         {
-            long offset = SearchIp(ip, ipIndex, 0, ipIndex.Length) * 7 + 4;
-
-            //偏移
-            var arrayOffset = startPosition + offset;
-            //跳过结束IP
-            arrayOffset = ReadLongX(qqwryDbBytes, arrayOffset, 3) + 4;
-            //读取标志
-            var flag = qqwryDbBytes[arrayOffset];
-            arrayOffset += 1;
-            //表示国家和地区被转向
-            if (flag == 1)
+            //将字符IP转换为字节
+            string[] ipSp = ip.Split('.');
+            if (ipSp.Length != 4)
             {
-                arrayOffset = ReadLongX(qqwryDbBytes, arrayOffset, 3);
-                //再读标志
-                flag = qqwryDbBytes[arrayOffset];
-                arrayOffset += 1;
+                throw new ArgumentOutOfRangeException("不是合法的IP地址!");
             }
-            var countryOffset = arrayOffset;
-            loc.Country = ReadString(qqwryDbBytes, flag, ref arrayOffset);
-
-            if (flag == 2)
+            byte[] IP = new byte[4];
+            for (int i = 0; i < IP.Length; i++)
             {
-                arrayOffset = countryOffset + 3;
+                IP[i] = (byte)(int.Parse(ipSp[i]) & 0xFF);
             }
-
-            flag = qqwryDbBytes[arrayOffset];
-            arrayOffset += 1;
-            loc.Area = ReadString(qqwryDbBytes, flag, ref arrayOffset);
-
-            if (" CZ88.NET".Equals(loc.Area, StringComparison.CurrentCultureIgnoreCase))
+            var ipFile = new IpDbAccessor(_qqwryDbBytes);
+            long offset = locateIP(ipFile, IP);
+            if (offset != -1)
             {
-                loc.Area = string.Empty;
+                loc = getIPLocation(loc, ipFile, offset);
             }
-
             return loc;
         }
 
-        private static QQWryCopyWrite ReadFromStream(Stream copywriteStream)
+        ///<summary>
+        ///取得具体信息
+        ///</summary>
+        ///<param name="offset"></param>
+        ///<returns></returns>
+        private IpLocation getIPLocation(IpLocation loc, IpDbAccessor ipFile, long offset)
+        {
+            ipFile.Position = offset + 4;
+            //读取第一个字节判断是否是标志字节
+            byte one = (byte)ipFile.ReadByte();
+            if (one == REDIRECT_MODE_1)
+            {
+                //第一种模式
+                //读取国家偏移
+                long countryOffset = ReadLongX(ipFile, 3);//readLong3();
+                //转至偏移处
+                ipFile.Position = countryOffset;
+                //再次检查标志字节
+                byte b = (byte)ipFile.ReadByte();
+                if (b == REDIRECT_MODE_2)
+                {
+                    loc.Country = readString(ipFile, ReadLongX(ipFile, 3));//readString(readLong3());
+                    ipFile.Position = countryOffset + 4;
+                }
+                else
+                    loc.Country = readString(ipFile, countryOffset);
+                //读取地区标志
+                loc.Area = readArea(ipFile, ipFile.Position);
+            }
+            else if (one == REDIRECT_MODE_2)
+            {
+                //第二种模式
+                loc.Country = readString(ipFile, ReadLongX(ipFile, 3));//readString(readLong3());
+                loc.Area = readArea(ipFile, offset + 8);
+            }
+            else
+            {
+                //普通模式
+                loc.Country = readString(ipFile, --ipFile.Position);
+                loc.Area = readString(ipFile, ipFile.Position);
+            }
+            return loc;
+        }
+
+        ///<summary>
+        ///读取地区名称
+        ///</summary>
+        ///<param name="offset"></param>
+        ///<returns></returns>
+        private string readArea(IpDbAccessor ipFile, long offset)
+        {
+            ipFile.Position = offset;
+            byte one = (byte)ipFile.ReadByte();
+            if (one == REDIRECT_MODE_1 || one == REDIRECT_MODE_2)
+            {
+                ipFile.Position = offset + 1;
+                long areaOffset = ReadLongX(ipFile, 3);//readLong3(offset + 1);
+                if (areaOffset == 0)
+                    return unArea;
+                else
+                {
+                    return readString(ipFile, areaOffset).Replace(" CZ88.NET", "");
+                }
+            }
+            else
+            {
+                return readString(ipFile, offset).Replace(" CZ88.NET","");
+            }
+        }
+
+        ///<summary>
+        ///读取字符串
+        ///</summary>
+        ///<param name="offset"></param>
+        ///<returns></returns>
+        private string readString(IpDbAccessor ipFile, long offset)
+        {
+            var buf = new byte[100];
+            ipFile.Position = offset;
+            int i = 0;
+            for (i = 0, buf[i] = (byte)ipFile.ReadByte();
+                buf[i] != (byte)(0); buf[++i] = (byte)ipFile.ReadByte()) ;
+            if (i > 0)
+                return _encodingGb2312.GetString(buf, 0, i);
+            else
+                return "";
+        }
+
+        ///<summary>
+        ///查找IP地址所在的绝对偏移量
+        ///</summary>
+        ///<param name="ip"></param>
+        ///<returns></returns>
+        private long locateIP(IpDbAccessor ipFile, byte[] ip)
+        {
+            long m = 0;
+            int r;
+            var b4 = new byte[4];
+            //比较第一个IP项
+            readIP(ipFile, _startPosition, b4);
+            r = compareIP(ip, b4);
+            if (r == 0)
+                return _startPosition;
+            else if (r < 0)
+                return -1;
+            //开始二分搜索
+            for (long i = _startPosition, j = _endPosition; i < j;)
+            {
+                m = this.getMiddleOffset(i, j);
+                readIP(ipFile, m, b4);
+                r = compareIP(ip, b4);
+                if (r > 0)
+                    i = m;
+                else if (r < 0)
+                {
+                    if (m == j)
+                    {
+                        j -= IP_RECORD_LENGTH;
+                        m = j;
+                    }
+                    else
+                    {
+                        j = m;
+                    }
+                }
+                else
+                {
+                    ipFile.Position = m + 4;
+                    return ReadLongX(ipFile, 3);//readLong3(m + 4);
+                }
+
+            }
+            ipFile.Position = m + 4;
+            m = ReadLongX(ipFile, 3);//readLong3(m + 4);
+            readIP(ipFile, m, b4);
+            r = compareIP(ip, b4);
+            if (r <= 0)
+                return m;
+            else
+                return -1;
+        }
+
+        ///<summary>
+        ///从当前位置读取四字节,此四字节是IP地址
+        ///</summary>
+        ///<param name="offset"></param>
+        ///<param name="ip"></param>
+        private void readIP(IpDbAccessor ipFile, long offset, byte[] ip)
+        {
+            ipFile.Position = offset;
+            ipFile.Read(ip, 0, ip.Length);
+            byte tmp = ip[0];
+            ip[0] = ip[3];
+            ip[3] = tmp;
+            tmp = ip[1];
+            ip[1] = ip[2];
+            ip[2] = tmp;
+        }
+
+        ///<summary>
+        ///比较IP地址是否相同
+        ///</summary>
+        ///<param name="ip"></param>
+        ///<param name="beginIP"></param>
+        ///<returns>0:相等,1:ip大于beginIP,-1:小于</returns>
+        private int compareIP(byte[] ip, byte[] beginIP)
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                int r = compareByte(ip[i], beginIP[i]);
+                if (r != 0)
+                    return r;
+            }
+            return 0;
+        }
+
+        ///<summary>
+        ///比较两个字节是否相等
+        ///</summary>
+        ///<param name="bsrc"></param>
+        ///<param name="bdst"></param>
+        ///<returns></returns>
+        private int compareByte(byte bsrc, byte bdst)
+        {
+            if ((bsrc & 0xFF) > (bdst & 0xFF))
+                return 1;
+            else if ((bsrc ^ bdst) == 0)
+                return 0;
+            else
+                return -1;
+        }
+
+        ///<summary>
+        ///从当前位置读取4字节,转换为长整型
+        ///</summary>
+        ///<param name="offset"></param>
+        ///<returns></returns>
+        private long readLong4(IpDbAccessor ipFile, long offset)
+        {
+            long ret = 0;
+            ipFile.Position = offset;
+            ret |= Convert.ToInt64(ipFile.ReadByte() & 0xFF);
+            ret |= Convert.ToInt64((ipFile.ReadByte() << 8) & 0xFF00);
+            ret |= Convert.ToInt64((ipFile.ReadByte() << 16) & 0xFF0000);
+            ret |= Convert.ToInt64((ipFile.ReadByte() << 24) & 0xFF000000);
+            return ret;
+        }
+
+        ///<summary>
+        ///根据当前位置,读取3字节
+        ///</summary>
+        ///<param name="offset"></param>
+        ///<returns></returns>
+        private long readLong3(IpDbAccessor ipFile, long offset)
+        {
+            long ret = 0;
+            ipFile.Position = offset;
+            ret |= Convert.ToInt64(ipFile.ReadByte() & 0xFF);
+            ret |= Convert.ToInt64((ipFile.ReadByte() << 8) & 0xFF00);
+            ret |= Convert.ToInt64((ipFile.ReadByte() << 16) & 0xFF0000);
+            return ret;
+        }
+
+        ///<summary>
+        ///从当前位置读取3字节
+        ///</summary>
+        ///<returns></returns>
+        private long readLong3(IpDbAccessor ipFile)
+        {
+            long ret = 0;
+            ret |= Convert.ToInt64(ipFile.ReadByte() & 0xFF);
+            ret |= Convert.ToInt64((ipFile.ReadByte() << 8) & 0xFF00);
+            ret |= Convert.ToInt64((ipFile.ReadByte() << 16) & 0xFF0000);
+            return ret;
+        }
+
+        /// <summary>
+        ///  从IP文件中读取指定字节并转换位long
+        /// </summary>
+        /// <param name="stream"></param>
+        /// <param name="bytesCount">需要转换的字节数，主意不要超过8字节</param>
+        /// <returns></returns>
+        private long ReadLongX(IpDbAccessor stream, int bytesCount)
+        {
+            var bytes = new byte[8];
+            stream.Read(bytes, 0, bytesCount);
+            return BitConverter.ToInt64(bytes, 0);
+        }
+
+        //取得begin和end之间的偏移量
+        #region 取得begin和end之间的偏移量
+        /**/
+        ///<summary>
+        ///取得begin和end中间的偏移
+        ///</summary>
+        ///<param name="begin"></param>
+        ///<param name="end"></param>
+        ///<returns></returns>
+        #endregion
+        private long getMiddleOffset(long begin, long end)
+        {
+            long records = (end - begin) / IP_RECORD_LENGTH;
+            records >>= 1;
+            if (records == 0)
+                records = 1;
+            return begin + records * IP_RECORD_LENGTH;
+        }
+
+        private QQWryCopyWrite ReadFromStream(Stream copywriteStream)
         {
             var binaryReader = new BinaryReader(copywriteStream);
             var copyWrite = new QQWryCopyWrite()

@@ -12,7 +12,7 @@ namespace QQWry.Test
 {
     public class QQWryIpSearchTest
     {
-        protected QQWryIpSearch GetInstance()
+        protected QQWryIpSearchMode2 GetInstance()
         {
             var dbPath = Path.Combine(AppContext.BaseDirectory, "qqwry.dat");
 
@@ -22,7 +22,7 @@ namespace QQWry.Test
                 QQWryUrl = "https://github.com/JadynWong/IP_qqwry/raw/test/qqwry.rar",
                 CopyWriteUrl = "https://github.com/JadynWong/IP_qqwry/raw/test/copywrite.rar"
             };
-            QQWryIpSearch ipSearch = new QQWryIpSearch(option);
+            QQWryIpSearchMode2 ipSearch = new QQWryIpSearchMode2(option);
             return ipSearch;
         }
 
