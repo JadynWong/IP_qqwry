@@ -328,3 +328,5 @@ ASALocalRun/
 
 # MFractors (Xamarin productivity tool) working folder 
 .mfractor/
+act/actions-setup-dotnet@v1
+act/actions-setup-dotnet@v1

@@ -1,30 +1,28 @@
+param(
+    [Parameter(Mandatory = $true)][string]$version = $(throw "Parameter missing: -version Version"),
+    [string]$nugetKey
+)
+
 $rootFolder = (Get-Item -Path "./" -Verbose).FullName
 $outputFolder = (Join-Path $rootFolder "artifacts")
-if(Test-Path $outputFolder) { Remove-Item $outputFolder -Force -Recurse }
+if (Test-Path $outputFolder) { Remove-Item $outputFolder -Force -Recurse }
 
-dotnet restore 
+Write-Output "Version:$version"
 
-$revision = @{ $true = $env:APPVEYOR_BUILD_NUMBER; $false = 1 }[$NULL -ne $env:APPVEYOR_BUILD_NUMBER];
+dotnet build QQWrySln.sln --configuration Release
 
-$revision = [convert]::ToInt32($revision, 10)
+dotnet test QQWrySln.sln --configuration Release
 
-Write-Output $revision 
+ dotnet pack .\QQWry -o $outputFolder -p:Version=$version --configuration Release
 
-$version = @{ $true = $env:APPVEYOR_BUILD_VERSION; $false = "-1"}[$NULL -ne $env:APPVEYOR_BUILD_VERSION];
+ dotnet pack .\QQWry.DependencyInjection -o $outputFolder -p:Version=$version --configuration Release
 
-if($version -eq "-1"){
-    throw "can't read version"
+if ($nugetKey) {
+    dotnet nuget push "$outputFolder\*.nupkg" --source https://api.nuget.org/v3/index.json --skip-duplicate --api-key $nugetKey
 }
-
-Write-Output $version 
-
-dotnet test .\QQWryTest -c Release
-
-dotnet build QQWrySln.sln
-
-dotnet pack .\QQWry -o $outputFolder -p:Version=$version --version-suffix=$revision
-
-dotnet pack .\QQWry.DependencyInjection -o $outputFolder -p:Version=$version --version-suffix=$revision
+else {
+    Write-Output "Skip nuget push"
+}
 
 Set-Location $outputFolder
 
