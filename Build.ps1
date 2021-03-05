@@ -3,22 +3,45 @@ param(
     [string]$nugetKey
 )
 
+$solutionPath = ".\QQWrySln.sln"
 $rootFolder = (Get-Item -Path "./" -Verbose).FullName
 $outputFolder = (Join-Path $rootFolder "artifacts")
 if (Test-Path $outputFolder) { Remove-Item $outputFolder -Force -Recurse }
 
 Write-Output "Version:$version"
 
-dotnet build QQWrySln.sln --configuration Release
+function CheckProcess ([string]$action) {
+    if (-Not $?) {
+        Write-Host ("$action failed")
+        Set-Location $rootFolder
+        exit $LASTEXITCODE
+    }
+}
 
-dotnet test QQWrySln.sln --configuration Release
+#build
+dotnet build $solutionPath --configuration Release
 
- dotnet pack .\QQWry -o $outputFolder -p:Version=$version --configuration Release
+CheckProcess "build"
 
- dotnet pack .\QQWry.DependencyInjection -o $outputFolder -p:Version=$version --configuration Release
+#test
+dotnet test $solutionPath --configuration Release --no-restore
 
+CheckProcess "test"
+
+#pack
+dotnet pack .\QQWry -o $outputFolder -p:Version=$version --configuration Release --no-restore
+
+CheckProcess "pack QQWry"
+
+dotnet pack .\QQWry.DependencyInjection -o $outputFolder -p:Version=$version --configuration Release --no-restore
+
+CheckProcess "pack QQWry.DependencyInjection"
+
+#nuget push
 if ($nugetKey) {
     dotnet nuget push "$outputFolder\*.nupkg" --source https://api.nuget.org/v3/index.json --skip-duplicate --api-key $nugetKey
+
+    CheckProcess "nuget push"
 }
 else {
     Write-Output "Skip nuget push"

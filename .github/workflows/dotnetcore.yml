@@ -1,6 +1,10 @@
 name: .NET Core
 
-on: [push]
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
 
 jobs:
   build:
@@ -9,13 +13,20 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Setup .NET Core
+
+    - name: Install libicu-dev
+      run: sudo apt-get update;sudo apt-get install libicu-dev -y
+
+    - name: Setup .NET
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 5.0.103
+        dotnet-version: '5.0.x'
+
     - name: Build with dotnet
       run: dotnet build --configuration Release
+
     - name: Test with dotnet
-      run: dotnet test --configuration Release
+      run: dotnet test --configuration Release --no-build
+
     - name: Pack with dotnet
-      run: dotnet pack --configuration Release
+      run: dotnet pack --configuration Release --no-build
