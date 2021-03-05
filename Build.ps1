@@ -24,16 +24,16 @@ dotnet build $solutionPath --configuration Release
 CheckProcess "build"
 
 #test
-dotnet test $solutionPath --configuration Release --no-restore
+dotnet test $solutionPath --configuration Release --no-restore --verbosity normal
 
 CheckProcess "test"
 
 #pack
-dotnet pack .\QQWry -o $outputFolder -p:Version=$version --configuration Release --no-restore
+dotnet pack .\QQWry -o $outputFolder -p:Version=$version --configuration Release --no-restore --verbosity normal
 
 CheckProcess "pack QQWry"
 
-dotnet pack .\QQWry.DependencyInjection -o $outputFolder -p:Version=$version --configuration Release --no-restore
+dotnet pack .\QQWry.DependencyInjection -o $outputFolder -p:Version=$version --configuration Release --no-restore --verbosity normal
 
 CheckProcess "pack QQWry.DependencyInjection"
 
