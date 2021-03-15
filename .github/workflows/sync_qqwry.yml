@@ -30,12 +30,24 @@ jobs:
       - name: Run download script
         shell: powershell
         run: ./download.ps1
+      
+      - name: Config Git
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          
+      - name: Import GPG key
+        id: import_gpg
+        uses: crazy-max/ghaction-import-gpg@v3
+        with:
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+          git-user-signingkey: true
+          git-commit-gpgsign: true
 
       # Runs a set of commands using the runners shell
       - name: Git push
         run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
           git add .
           git commit -m 'sync qqwry'
           git push
