@@ -19,11 +19,10 @@ namespace QQWry.Test
 
             var option = new QQWryOptions(dbPath)
             {
-                QQWryUrl = "https://github.com/JadynWong/IP_qqwry/raw/test/qqwry.rar",
-                CopyWriteUrl = "https://github.com/JadynWong/IP_qqwry/raw/test/copywrite.rar"
+                QQWryUrl = "https://github.com/JadynWong/QQWrySync/raw/main/qqwry.rar",
+                CopyWriteUrl = "https://github.com/JadynWong/QQWrySync/raw/main/copywrite.rar"
             };
-            QQWryIpSearch ipSearch = new QQWryIpSearch(option);
-            return ipSearch;
+            return new QQWryIpSearch(option);
         }
 
         protected string GetRandomIp(IIpSearch ipSearch)
