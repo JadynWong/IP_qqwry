@@ -2,7 +2,6 @@
 
 [![.NET Core](https://github.com/JadynWong/IP_qqwry/actions/workflows/dotnetcore.yml/badge.svg)](https://github.com/JadynWong/IP_qqwry/actions/workflows/dotnetcore.yml)
 [![release](https://github.com/JadynWong/IP_qqwry/actions/workflows/release.yml/badge.svg)](https://github.com/JadynWong/IP_qqwry/actions/workflows/release.yml)
-[![sync_qqwry](https://github.com/JadynWong/IP_qqwry/actions/workflows/sync_qqwry.yml/badge.svg)](https://github.com/JadynWong/IP_qqwry/actions/workflows/sync_qqwry.yml)
 
 |  Packages   | Version  |
 |  ----  | ----  |
