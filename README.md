@@ -8,7 +8,10 @@
 |QQWry   | [![NuGet](https://img.shields.io/nuget/v/QQWry.svg?style=flat)](https://www.nuget.org/packages/QQWry) |
 | QQWry.DependencyInjection | [![NuGet](https://img.shields.io/nuget/v/QQWry.DependencyInjection.svg?style=flat)](https://www.nuget.org/packages/QQWry.DependencyInjection) |
 
-支持在线更新数据库
+~~支持在线更新数据库~~
+
+由于发生变化目前暂时暂不支持更新, 如果有需要可参考此库
+> https://github.com/out0fmemory/qqwry.dat/blob/master/get_chunzhen.sh
 
 ## QQWry
 
