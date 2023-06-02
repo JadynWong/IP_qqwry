@@ -22,13 +22,7 @@ jobs:
       with:
         dotnet-version: '6.0.x'
 
-    - name: Build with dotnet
-      run: dotnet build --configuration Release
-
-    - name: Test with dotnet
-      run: dotnet test --configuration Release --no-build --verbosity normal
-
-    - name: Pack with dotnet
+    - name: Build and Test
+      shell: pwsh
       run: |
-        dotnet pack ./QQWry --configuration Release --no-build --verbosity normal
-        dotnet pack ./QQWry.DependencyInjection --configuration Release --no-build --verbosity normal
+        .\Build.ps1 -version ${{ steps.get_version.outputs.VERSION }}
