@@ -1,6 +1,6 @@
 # IP_qqwry [纯真IP数据库](http://www.cz88.net/)操作
 
-[![.NET Core](https://github.com/JadynWong/IP_qqwry/actions/workflows/dotnetcore.yml/badge.svg)](https://github.com/JadynWong/IP_qqwry/actions/workflows/dotnetcore.yml)
+[![build](https://github.com/JadynWong/IP_qqwry/actions/workflows/build.yml/badge.svg)](https://github.com/JadynWong/IP_qqwry/actions/workflows/build.yml)
 [![release](https://github.com/JadynWong/IP_qqwry/actions/workflows/release.yml/badge.svg)](https://github.com/JadynWong/IP_qqwry/actions/workflows/release.yml)
 
 |  Packages   | Version  |
