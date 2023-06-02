@@ -96,7 +96,7 @@ namespace QQWry
 
         static QQWryIpSearch()
         {
-#if NET452
+#if NET45
 
 #else
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
