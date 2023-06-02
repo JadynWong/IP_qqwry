@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;netstandard2.1;netcoreapp2.0;netcoreapp2.1;netcoreapp2.2;netcoreapp3.0;netcoreapp3.1;net5;net4.5</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;net6.0;net452</TargetFrameworks>
     <TargetFrameworks Condition="'$(OS)' != 'Windows_NT'">netstandard2.0</TargetFrameworks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Copyright>JadynWong</Copyright>
@@ -11,19 +11,23 @@
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <Description>QQWry IP查询</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <LangVersion>7.3</LangVersion>
+    <LangVersion>latest</LangVersion>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
-  
+
   <ItemGroup>
-    <PackageReference Include="SharpZipLib" Version="1.3.3" />
+    <None Include="..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net4.5'">
+  <ItemGroup Condition="'$(TargetFramework)' == 'net452'">
     <Reference Include="System.Net.Http" />
   </ItemGroup>
   
-  <ItemGroup Condition="'$(TargetFramework)' != 'net4.5'">
-    <PackageReference Include="System.Text.Encoding.CodePages" Version="5.0.0" />
+  <ItemGroup Condition="'$(TargetFramework)' != 'net452'">
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="6.0.0" />
   </ItemGroup>
 
 </Project>

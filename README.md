@@ -5,13 +5,9 @@
 
 |  Packages   | Version  |
 |  ----  | ----  |
-|QQWry   | [![NuGet](https://img.shields.io/nuget/v/QQWry.svg?style=flat)](https://www.nuget.org/packages/QQWry) |
-| QQWry.DependencyInjection | [![NuGet](https://img.shields.io/nuget/v/QQWry.DependencyInjection.svg?style=flat)](https://www.nuget.org/packages/QQWry.DependencyInjection) |
+|  QQWry   | [![NuGet](https://img.shields.io/nuget/v/QQWry.svg?style=flat)](https://www.nuget.org/packages/QQWry) |
+|  QQWry.DependencyInjection | [![NuGet](https://img.shields.io/nuget/v/QQWry.DependencyInjection.svg?style=flat)](https://www.nuget.org/packages/QQWry.DependencyInjection) |
 
-~~支持在线更新数据库~~
-
-由于发生变化目前暂时暂不支持更新, 如果有需要可参考此库
-> https://github.com/out0fmemory/qqwry.dat/blob/master/get_chunzhen.sh
 
 ## QQWry
 
@@ -87,32 +83,19 @@ IpLocation GetIpLocation(string strIp);
 /// <param name="strIp"></param>
 /// <param name="token"></param>
 /// <returns></returns>
-Task<IpLocation> GetIpLocationAsync(string strIp, CancellationToken token = default(CancellationToken));
+Task<IpLocation> GetIpLocationAsync(string strIp, CancellationToken token = default);
 
 /// <summary>
-/// 获取QQWry CopyWrite
+/// 初始化
 /// </summary>
 /// <returns></returns>
-QQWryCopyWrite GetCopyWrite();
+bool Init();
 
 /// <summary>
-/// 获取QQWry CopyWrite
-/// </summary>
-/// <returns></returns>
-Task<QQWryCopyWrite> GetCopyWriteAsync();
-
-/// <summary>
-/// 获取IP信息
-/// </summary>
-/// <param name="getNewDb">获取新数据库</param>
-/// <returns></returns>
-bool Init(bool getNewDb = false);
-
-/// <summary>
-/// 获取IP信息
+/// 初始化
 /// </summary>
 /// <param name="getNewDb"></param>
 /// <param name="token"></param>
 /// <returns></returns>
-Task<bool> InitAsync(bool getNewDb = false, CancellationToken token = default(CancellationToken));
+Task<bool> InitAsync(CancellationToken token = default);
 ```

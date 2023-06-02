@@ -1,6 +1,5 @@
 using System.Threading;
 using System.Threading.Tasks;
-using QQWry;
 
 namespace QQWry
 {
@@ -22,7 +21,7 @@ namespace QQWry
         /// <param name="ip"></param>
         /// <returns></returns>
         bool CheckIp(string ip);
-        
+
         /// <summary>
         /// 获取IP信息
         /// </summary>
@@ -36,33 +35,19 @@ namespace QQWry
         /// <param name="strIp"></param>
         /// <param name="token"></param>
         /// <returns></returns>
-        Task<IpLocation> GetIpLocationAsync(string strIp, CancellationToken token = default(CancellationToken));
+        Task<IpLocation> GetIpLocationAsync(string strIp, CancellationToken token = default);
 
         /// <summary>
-        /// 获取CopyWrite
+        /// 初始化
         /// </summary>
         /// <returns></returns>
-        QQWryCopyWrite GetCopyWrite();
+        bool Init();
 
         /// <summary>
-        /// 获取CopyWrite
+        /// 初始化
         /// </summary>
-        /// <returns></returns>
-        Task<QQWryCopyWrite> GetCopyWriteAsync();
-
-        /// <summary>
-        /// 获取IP信息
-        /// </summary>
-        /// <param name="getNewDb"></param>
-        /// <returns></returns>
-        bool Init(bool getNewDb = false);
-
-        /// <summary>
-        /// 获取IP信息
-        /// </summary>
-        /// <param name="getNewDb"></param>
         /// <param name="token"></param>
         /// <returns></returns>
-        Task<bool> InitAsync(bool getNewDb = false, CancellationToken token = default(CancellationToken));
+        Task<bool> InitAsync(CancellationToken token = default);
     }
 }
