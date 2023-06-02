@@ -25,4 +25,4 @@ jobs:
     - name: Build and Test
       shell: pwsh
       run: |
-        .\Build.ps1 -version ${{ steps.get_version.outputs.VERSION }}
+        .\Build.ps1 -version "1.0.0"
