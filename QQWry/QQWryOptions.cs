@@ -1,9 +1,7 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Text;
-// ReSharper disable InconsistentNaming
 
+// ReSharper disable InconsistentNaming
 namespace QQWry
 {
     public class QQWryOptions
@@ -41,15 +39,5 @@ namespace QQWry
                 _dbPath = value;
             }
         }
-
-        /// <summary>
-        /// CopyWriteUrl
-        /// </summary>
-        public string CopyWriteUrl { get; set; } = "http://update.cz88.net/ip/copywrite.rar";
-
-        /// <summary>
-        /// QQWryUrl
-        /// </summary>
-        public string QQWryUrl { get; set; } = "http://update.cz88.net/ip/qqwry.rar";
     }
 }

@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.28407.52
+# Visual Studio Version 17
+VisualStudioVersion = 17.6.33723.286
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sample", "Sample\Sample.csproj", "{6D0553F4-06F0-4276-B76E-E11F594E6771}"
 EndProject
@@ -9,6 +9,13 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QQWry.DependencyInjection", "QQWry.DependencyInjection\QQWry.DependencyInjection.csproj", "{8E9103A8-904C-4628-A4F6-956AC02D7E8D}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QQWry.Test", "QQWryTest\QQWry.Test.csproj", "{6D25D7F6-15A5-48A3-8817-00F0074BBDAD}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "solution items", "solution items", "{A960908C-6C2D-4C05-8C5E-86B372826708}"
+	ProjectSection(SolutionItems) = preProject
+		Build.ps1 = Build.ps1
+		LICENSE = LICENSE
+		README.md = README.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

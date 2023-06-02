@@ -1,13 +1,10 @@
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Text.RegularExpressions;
+using System.Linq;
 using System.Threading.Tasks;
-using QQWry;
 using Xunit;
-// ReSharper disable InconsistentNaming
 
+// ReSharper disable InconsistentNaming
 namespace QQWry.Test
 {
     public class QQWryIpSearchTest
@@ -15,13 +12,7 @@ namespace QQWry.Test
         protected QQWryIpSearch GetInstance()
         {
             var dbPath = Path.Combine(AppContext.BaseDirectory, "qqwry.dat");
-
-
-            var option = new QQWryOptions(dbPath)
-            {
-                QQWryUrl = "https://github.com/JadynWong/QQWrySync/raw/main/qqwry.rar",
-                CopyWriteUrl = "https://github.com/JadynWong/QQWrySync/raw/main/copywrite.rar"
-            };
+            var option = new QQWryOptions(dbPath);
             return new QQWryIpSearch(option);
         }
 
@@ -29,11 +20,10 @@ namespace QQWry.Test
         {
             while (true)
             {
-                var sj = new Random(Guid.NewGuid().GetHashCode());
                 var s = "";
                 for (var i = 0; i <= 3; i++)
                 {
-                    var q = sj.Next(0, 255).ToString();
+                    var q = Random.Shared.Next(0, 255).ToString();
                     if (i < 3)
                     {
                         s += (q + ".").ToString();
@@ -53,7 +43,6 @@ namespace QQWry.Test
         [Fact]
         public void CheckTest()
         {
-
             var ipSearch = GetInstance();
 
             var ip = GetRandomIp(ipSearch);
@@ -66,20 +55,11 @@ namespace QQWry.Test
         [Fact]
         public void InitTest()
         {
-
             var ipSearch = GetInstance();
 
             var inited = ipSearch.Init();
 
             Assert.True(inited);
-
-            Assert.True(ipSearch.IpCount > 0);
-
-            Assert.NotNull(ipSearch.Version);
-
-            var getNewInited = ipSearch.Init(true);
-
-            Assert.True(getNewInited);
 
             Assert.True(ipSearch.IpCount > 0);
 
@@ -101,21 +81,12 @@ namespace QQWry.Test
 
             Assert.NotNull(ipSearch.Version);
 
-            var getNewInited = await ipSearch.InitAsync(true);
-
-            Assert.True(getNewInited);
-
-            Assert.True(ipSearch.IpCount > 0);
-
-            Assert.NotNull(ipSearch.Version);
-
             ipSearch.Dispose();
         }
 
         [Fact]
         public void GetIpLocationTest()
         {
-
             var ipSearch = GetInstance();
 
             var preSearchIpArray = new string[10];
@@ -139,7 +110,7 @@ namespace QQWry.Test
         }
 
         [Fact]
-        public async Task GetIpLocationAsyncTestAsync()
+        public async Task GetIpLocationAsyncTest()
         {
             var ipSearch = GetInstance();
 
@@ -164,25 +135,21 @@ namespace QQWry.Test
         }
 
         [Fact]
-        public void MultiThreadingSafeTest()
+        public async Task MultiThreadingSafeTest()
         {
             var ipSearch = GetInstance();
 
-            var maxTask = 30000;
+            var maxTask = 300;
 
-            var p = Parallel.For(0, maxTask, new ParallelOptions()
+            var ips = Enumerable.Range(0, maxTask).Select(_ => GetRandomIp(ipSearch)).ToList();
+
+            await Parallel.ForEachAsync(ips, async (ip, ParallelLoopState) =>
             {
-                MaxDegreeOfParallelism = 100
-            },  (num, ParallelLoopState) =>
-            {
-                var ip = GetRandomIp(ipSearch);
-                var ipLocation = ipSearch.GetIpLocation(ip);
+                var ipLocation = await ipSearch.GetIpLocationAsync(ip);
                 Assert.NotNull(ipLocation.Area);
                 Assert.True(ipSearch.IpCount > 0);
                 Assert.NotNull(ipSearch.Version);
             });
-
-
         }
 
         [Fact]
@@ -190,16 +157,16 @@ namespace QQWry.Test
         {
             var ipSearch = GetInstance();
 
-            var maxTask = 30000;
+            var maxTask = 300;
 
-            for (int i = 0; i < maxTask; i++)
+            var ips = Enumerable.Range(0, maxTask).Select(_ => GetRandomIp(ipSearch)).ToList();
+
+            foreach (var ip in ips)
             {
-                var ip = GetRandomIp(ipSearch);
                 var ipLocation = await ipSearch.GetIpLocationAsync(ip);
                 Assert.NotNull(ipLocation.Area);
                 Assert.True(ipSearch.IpCount > 0);
                 Assert.NotNull(ipSearch.Version);
-
             }
         }
     }

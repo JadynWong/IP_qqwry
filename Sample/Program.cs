@@ -20,7 +20,7 @@ namespace Sample
 
             var config = new QQWryOptions()
             {
-                DbPath = Test.MapRootPath("qqwry.dat")
+                DbPath = BenchmarkTest.MapRootPath("qqwry.dat")
             };
             #region QQWry
             Console.WriteLine("");
@@ -29,16 +29,13 @@ namespace Sample
             var ipSearch = new QQWryIpSearch(config);
             var ipSearchMode2 = new QQWryIpSearchMode2(config);
 
-            var copyWrite = ipSearch.GetCopyWrite();
-            var date = copyWrite.Text.Replace("纯真IP地址数据库 ", string.Empty);
-            var getNewDb = ipSearch.Version.IndexOf(date) == -1;
-
-            ipSearch.Init(getNewDb);
-            ipSearchMode2.Init(getNewDb);
+            //可选, 若不调用则在首次使用时, 自动先初始化
+            ipSearch.Init();
+            ipSearchMode2.Init();
 
             for (var i = 0; i < 100; i++)
             {
-                var ipLocation = ipSearchMode2.GetIpLocation(Test.GetRandomIp(ipSearchMode2));
+                var ipLocation = ipSearchMode2.GetIpLocation(BenchmarkTest.GetRandomIp(ipSearchMode2));
                 Write(ipLocation);
             }
             Console.WriteLine("记录总数" + ipSearchMode2.IpCount);
@@ -60,7 +57,7 @@ namespace Sample
                 var ipSearchInterface = scope.ServiceProvider.GetRequiredService<IIpSearch>();
                 for (var i = 0; i < 100; i++)
                 {
-                    var ipLocation = ipSearch.GetIpLocation(Test.GetRandomIp(ipSearch));
+                    var ipLocation = ipSearch.GetIpLocation(BenchmarkTest.GetRandomIp(ipSearch));
                     Write(ipLocation);
                 }
                 Console.WriteLine("记录总数" + ipSearchInterface.IpCount);
@@ -76,14 +73,14 @@ namespace Sample
             var javaQQWry = new Java2QQWry(config.DbPath);
             for (var i = 0; i < 100; i++)
             {
-                var ip = Test.GetRandomIp(ipSearch);
+                var ip = BenchmarkTest.GetRandomIp(ipSearch);
                 var ipLocation = javaQQWry.SearchIPLocation(ip);
                 Write(ip, ipLocation);
             }
 
             #endregion
 
-            var summary = BenchmarkRunner.Run<Test>();
+            var summary = BenchmarkRunner.Run<BenchmarkTest>();
 
             Console.ReadKey();
         }
