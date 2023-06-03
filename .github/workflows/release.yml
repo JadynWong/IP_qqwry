@@ -1,25 +1,17 @@
-# This is a basic workflow to help you get started with Actions
-
 name: release
 
-# Controls when the action will run. 
 on:
   push:
-    # Sequence of patterns matched against refs/tags
     tags:
-      - '*' # Push events to matching v*, i.e. v1.0, v20.15.10
+      - '*.*.*' # Push events to matching v*, i.e. v1.0, v20.15.10
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
   build:
-    # The type of runner that the job will run on
-    runs-on: windows-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
+    runs-on: ubuntu-latest
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -34,28 +26,23 @@ jobs:
         with:
           dotnet-version: '6.0.x'
 
-      - name: Build project
-        shell: powershell
+      - name: Build and Test and Pack
+        shell: pwsh
         run: |
           .\Build.ps1 -version ${{ steps.get_version.outputs.VERSION }} -nugetKey ${{ secrets.NugetKey }}  
           
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ steps.get_version.outputs.VERSION }}
-          release_name: Release ${{ steps.get_version.outputs.VERSION }}
-          draft: false
-          prerelease: false
           
-      - name: Upload Release Asset
+      - name: Create Release
         id: action-gh-release
         uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          name: Release ${{ steps.get_version.outputs.VERSION }}
+          prerelease: false
+          draft: false
+          generate_release_notes: true
           files: |
             ./artifacts/QQWry.${{ steps.get_version.outputs.VERSION }}.nupkg
             ./artifacts/QQWry.DependencyInjection.${{ steps.get_version.outputs.VERSION }}.nupkg

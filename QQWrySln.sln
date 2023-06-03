@@ -14,9 +14,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "solution items", "solution 
 	ProjectSection(SolutionItems) = preProject
 		Build.ps1 = Build.ps1
 		LICENSE = LICENSE
-		.github\workflows\build.yml = .github\workflows\build.yml
 		README.md = README.md
-		.github\workflows\release.yml = .github\workflows\release.yml
 	EndProjectSection
 EndProject
 Global
