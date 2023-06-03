@@ -1,8 +1,7 @@
 using System;
-using System.IO;
+using System.Diagnostics;
 using System.Linq;
-using System.Text;
-
+using System.Threading.Tasks;
 using BenchmarkDotNet.Running;
 
 using Microsoft.Extensions.DependencyInjection;
@@ -14,7 +13,7 @@ namespace Sample
 {
     class Program
     {
-        private static void Main(string[] args)
+        private static async Task Main(string[] args)
         {
             Console.WriteLine("QQWry Sample!");
 
@@ -30,34 +29,34 @@ namespace Sample
             var ipSearchMode2 = new QQWryIpSearchMode2(config);
 
             //可选, 若不调用则在首次使用时, 自动先初始化
-            ipSearch.Init();
-            ipSearchMode2.Init();
+            await ipSearch.InitAsync();
+            await ipSearchMode2.InitAsync();
 
-            for (var i = 0; i < 100; i++)
+            for (var i = 0; i < 10; i++)
             {
-                var ipLocation = ipSearchMode2.GetIpLocation(BenchmarkTest.GetRandomIp(ipSearchMode2));
+                var ipLocation = await ipSearch.GetIpLocationAsync(BenchmarkTest.GetRandomIp(ipSearch));
                 Write(ipLocation);
             }
-            Console.WriteLine("记录总数" + ipSearchMode2.IpCount);
-            Console.WriteLine("版本" + ipSearchMode2.Version);
+            Console.WriteLine("记录总数" + ipSearch.IpCount);
+            Console.WriteLine("版本" + ipSearch.Version);
 
             #endregion
 
             #region QQWry.DependencyInjection
+
             Console.WriteLine("");
             Console.WriteLine("QQWry.DependencyInjection");
+
             var service = new ServiceCollection();
-
             service.AddQQWry(config);
-
             var serviceProvider = service.BuildServiceProvider();
 
             using (var scope = serviceProvider.CreateScope())
             {
                 var ipSearchInterface = scope.ServiceProvider.GetRequiredService<IIpSearch>();
-                for (var i = 0; i < 100; i++)
+                for (var i = 0; i < 10; i++)
                 {
-                    var ipLocation = ipSearch.GetIpLocation(BenchmarkTest.GetRandomIp(ipSearch));
+                    var ipLocation = await ipSearch.GetIpLocationAsync(BenchmarkTest.GetRandomIp(ipSearch));
                     Write(ipLocation);
                 }
                 Console.WriteLine("记录总数" + ipSearchInterface.IpCount);
@@ -67,20 +66,22 @@ namespace Sample
 
             #endregion
 
-            #region java to QQWry
+            #region Speed
+
             Console.WriteLine("");
-            Console.WriteLine("java to QQWry");
-            var javaQQWry = new Java2QQWry(config.DbPath);
-            for (var i = 0; i < 100; i++)
-            {
-                var ip = BenchmarkTest.GetRandomIp(ipSearch);
-                var ipLocation = javaQQWry.SearchIPLocation(ip);
-                Write(ip, ipLocation);
-            }
+            Console.WriteLine("Speed");
+
+            await ExecuteBatchAsync(100, ipSearch);
+            await ExecuteBatchAsync(1_000, ipSearch);
+            await ExecuteBatchAsync(10_000, ipSearch);
+            await ExecuteBatchAsync(100_000, ipSearch);
+            await ExecuteBatchAsync(1_000_000, ipSearch);
 
             #endregion
 
+#if RELEASE
             var summary = BenchmarkRunner.Run<BenchmarkTest>();
+#endif
 
             Console.ReadKey();
         }
@@ -95,41 +96,19 @@ namespace Sample
             Console.WriteLine($"ip：{ip}，country：{ipLocation.country}，area：{ipLocation.area}");
         }
 
-        /// <summary>
-        /// Maps a virtual path to a physical disk path.
-        /// </summary>
-        /// <param name="path">The path to map. E.g. "~/bin"</param>
-        /// <returns>The physical path. E.g. "c:\\inetpub\\wwwroot\\bin"</returns>
-        public static string MapRootPath(string path)
+        private static async Task ExecuteBatchAsync(int count, IIpSearch ipSearch)
         {
-            path = path.Replace("~/", "").TrimStart('/').Replace('/', '\\');
-            return Path.Combine(AppDomain.CurrentDomain.BaseDirectory ?? string.Empty, path);
-        }
+            // prepare
+            var ips = Enumerable.Range(0, count).Select(_ => BenchmarkTest.GetRandomIp(ipSearch)).ToArray();
 
-        static string GetRandomIp(IIpSearch ipSearch)
-        {
-            while (true)
+            var sw = Stopwatch.StartNew();
+
+            foreach (var ip in ips)
             {
-                var sj = new Random(Guid.NewGuid().GetHashCode());
-                var s = "";
-                for (var i = 0; i <= 3; i++)
-                {
-                    var q = sj.Next(0, 255).ToString();
-                    if (i < 3)
-                    {
-                        s += (q + ".").ToString();
-                    }
-                    else
-                    {
-                        s += q.ToString();
-                    }
-                }
-                if (ipSearch.CheckIp(s))
-                {
-                    return s;
-                }
+                var _ = await ipSearch.GetIpLocationAsync(ip);
             }
+
+            Console.WriteLine("{0}条耗费{1}ms", count, sw.ElapsedMilliseconds);
         }
     }
-
 }
