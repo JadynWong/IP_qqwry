@@ -94,7 +94,6 @@ bool Init();
 /// <summary>
 /// 初始化
 /// </summary>
-/// <param name="getNewDb"></param>
 /// <param name="token"></param>
 /// <returns></returns>
 Task<bool> InitAsync(CancellationToken token = default);
